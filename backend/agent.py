@@ -1,65 +1,84 @@
-'''
-This represents all of the parameters assigned to a specific player
-'''
+"""
+Agent class to track genes and fitness of each agent as an object
+"""
 import numpy as np
 
 # global variables
 gene_size = 10
 
 class Agent:
-    def __init__(self, genes: list):
-        '''
-        Genes: a list of floats representing the agent's parameters
-        The genes are passed into a function that is used to determine movements based on environmental input
-        '''
-        self.genes: list = genes if genes else [0 for _ in range(gene_size)]
+    def __init__(self, genes: list[float]):
+        """
+        Initializes an agent with genes and fitness
+
+        Args:
+            genes (list[float]): List of genes for the agent
+        """
+        self.genes: list = genes if genes else [0.0 for _ in range(gene_size)]
         self.fitness: float = 0.0
 
     def __str__(self) -> str:
-        '''
-        Returns a string formatted output of the agent's genes and fitness,
-        called when the print() function is used on the object itself
-        '''
+        """
+        Returns:
+            str: String representation of the agent in a readable format
+        """        
         return f'Genes: {self.genes}, Fitness: {self.fitness}'
 
     def __repr__(self):
-        '''
-        Returns a string formatted output of the agent's genes and fitness,
-        called when the object is printed in a container.
-        '''
-        return f"<Agent object {id(self)}>"
+        """
+
+        Returns:
+            _type_: String representation of specific agent (for within containers mostly)
+        """        
+        return f"<Agent object {id(self)!r}, Genes: {self.genes!r}, Fitness: {self.fitness!r}>"
 
     def set_fitness(self, new_fitness: float = 0.0) -> None:
-        '''
-        Setter function to directly set the agent's fitness
-        '''
+        """
+        Sets the fitness of the agent
+
+        Args:
+            new_fitness (float, optional): Fitness value to assign to agent. Defaults to 0.0.
+        """        
         self.fitness = new_fitness
 
     def get_fitness(self) -> float:
-        '''
-        Getter function for agent's fitness
-        '''
+        """
+        Gets the fitness of the agent
+
+        Returns:
+            float: Fitness value of the agent
+        """        
         return self.fitness
 
-    def set_genes(self, new_genes: list) -> None:
-        '''
-        Setter function to directly set the agent's genes
-        '''
+    def set_genes(self, new_genes: list[float]) -> None:
+        """
+        Sets the genes of the agent
+
+        Args:
+            new_genes (list[float]): List of genes to assign to agent
+        """        
         self.genes = new_genes
 
-    def get_genes(self) -> dict:
-        '''
-        Getter function for agent's genes
-        '''
+    def get_genes(self) -> list[float]:
+        """
+        Gets the genes of the agent
+
+        Returns:
+            list[float]: List of genes for the agent
+        """        
         return self.genes    
 
     def mutate(self, mutation_rate: float = 0.1, mutation_strength: float = 1) -> None:
-        '''
-        Randomly mutates the agent's genes at a certain rate and strength
-        '''
+        """
+        Mutates the genes of the agent based on a mutation rate and strength
+
+        Args:
+            mutation_rate (float, optional): Ratio of genes to mutate. Defaults to 0.1.
+            mutation_strength (float, optional): Scaling factor for mutation amount for modified genes. Defaults to 1.
+        """        
         for gene_index, gene in enumerate(self.genes):
             if np.random.uniform() < mutation_rate:
-                mutation_amount = np.random.normal(0, mutation_strength)
+                mutation_amount: float = np.random.normal(0, mutation_strength)
                 self.genes[gene_index] += mutation_amount
         
 
