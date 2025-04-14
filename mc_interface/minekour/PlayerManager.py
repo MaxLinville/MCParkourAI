@@ -2,8 +2,10 @@ import csv
 import re
 
 from minescript import (echo, getblocklist, player_position)
+from minescript import(player_set_orientation, player_press_sprint, player_press_sneak, player_press_jump, player_press_forward, player_press_backward, player_press_left, player_press_right)
 
 from .SimplifiedBlock import SimplifiedBlock
+from .PlayerMotion import (Motion, MoveType)
 
 class PlayerManager:
     """
@@ -37,7 +39,7 @@ class PlayerManager:
         return cube_coords
 
     #also GPT
-    def __get_cube_bounds(center, distance=4):
+    def __get_cube_bounds(center, distance=4) -> tuple[int,int]:
         x, y, z = center
         point1 = (int(x - distance), int(y - distance), int(z - distance))
         point2 = (int(x + distance), int(y + distance), int(z + distance))
@@ -69,9 +71,37 @@ class PlayerManager:
             reader = csv.reader(file)
             for row in reader:
                 PlayerManager.block_map[row[0].upper()] = SimplifiedBlock[row[1].upper()]
-
-    def 
+    
+    def movePlayer(move: Motion):
+        """
+        Uses a move dataclass to set the motion of the player
+        """
+        player_set_orientation(move.yaw, move.pitch)
+        
+        match move.movement_speed:
+            case MoveType.SNEAKING:
+                player_press_sprint(False)
+                player_press_sneak(True)
+            case MoveType.NORMAL:
+                player_press_sprint(False)
+                player_press_sneak(False)
+            case MoveType.SPRINTING:
+                player_press_sprint(True)
+                player_press_sneak(False)
                 
+        player_press_jump(move.jumping)
+        player_press_forward(move.forward)
+        player_press_backward(move.backward)
+        player_press_left(move.left)
+        player_press_right(move.right)
+        
+    def getScore() -> float:
+        """
+        Gets the score of this player
+        """
+        None
+        #TODO: 
+        
 def init():
     """
     Initializes any values and classes needed for PlayerManager
