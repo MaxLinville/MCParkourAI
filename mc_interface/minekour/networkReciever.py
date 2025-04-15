@@ -89,6 +89,8 @@ class networkReciever:
             networkReciever.selector = selectors.DefaultSelector()
             networkReciever.selector.register(networkReciever.control_socket, selectors.EVENT_READ, networkReciever.recieve)
             
+            echo(f"Sucessfully connected to {address_control}")
+            
         except OSError as err:
             echo(f"FAILED TO CONNECT TO {address_control}")
             raise SystemExit(1)
@@ -121,12 +123,15 @@ class networkReciever:
         
         try:
             data = sock.recv(BUFFER_SIZE).decode(ENCODING)
+            sock.send("OK".encode(ENCODING))
+            
+            echo(f"Recived {data} command")
             
             func = networkReciever.command_map[data]
             func()
             
         except KeyError as err:
-            echo(f"Warning: recieved malformed command from server {data}")
+            echo(f"Warning: recieved malformed command from server: {data}")
         except OSError as err:
             echo(f"FAILED TO COMMUNICATE WITH SERVER")
             raise SystemExit(1)
