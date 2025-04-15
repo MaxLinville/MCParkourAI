@@ -1,7 +1,7 @@
 import csv
 import re
 
-from minescript import (echo, getblocklist, player_position)
+from minescript import (echo, getblocklist, player_position, player_orientation)
 from minescript import(player_set_orientation, player_press_sprint, player_press_sneak, player_press_jump, player_press_forward, player_press_backward, player_press_left, player_press_right)
 
 from .SimplifiedBlock import SimplifiedBlock
@@ -59,7 +59,13 @@ class PlayerManager:
         returned_blocks_enum = [PlayerManager.block_map[x] for x in returned_blocks_striped]
         echo(returned_blocks_enum)
         return returned_blocks_enum
-        
+    
+    def getRotation() -> tuple[float, float]:
+        """
+        Returns yaw, pitch of the player
+        """
+        return player_orientation()
+    
     def readBlockData(file_path: str):
         """
         Populates the block translation map from a csv file
@@ -101,6 +107,12 @@ class PlayerManager:
         """
         None
         #TODO: 
+        
+    def resetPlayer():
+        """
+        Resets the player
+        """
+        None
         
 def init():
     """
