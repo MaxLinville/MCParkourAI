@@ -5,6 +5,7 @@ import numpy as np
 from random import choice, choices
 from multiprocessing import Pool # this is for later when it becomes ungodly slow
 from .agent import Agent, gene_size
+from backend.neural_net import ControlNeuralNetwork
 
 def generate_population(num_agents: int = 100) -> list[Agent]:
     """
@@ -61,9 +62,18 @@ def evaluate_fitness(agents: list[Agent]) -> None:
     """
     # temp for testing is just sum of genes
     for agent in agents:
-        agent.set_fitness(sum(agent.get_genes()))
+        # Create neural network from agent's genes
+        nn = ControlNeuralNetwork.from_genes(
+            agent.get_genes(), 
+            hidden_layer_sizes=[64, 32], 
+            radial_distance=6
+        )
+        
+        # Here you would evaluate the agent's performance in the environment
+        # For now, using placeholder fitness calculation
+        agent.set_fitness(sum(agent.get_genes()))  # Replace with actual evaluation
 
-def evolve_population(population: list, num_agents: int = 100, mutation_rate: float = 0.2, mutation_strength: float = 0.2) -> list:
+def evolve_population(population: list, num_agents: int = 100, mutation_rate: float = 0.2, mutation_strength: float = 0.2, elite_count: int = 2) -> list:
     """
     Evolves the population by selecting, crossing over, and mutating agents
 
@@ -77,6 +87,9 @@ def evolve_population(population: list, num_agents: int = 100, mutation_rate: fl
         list: New population of agents
     """    
     evaluate_fitness(population)
+    population.sort(key=lambda agent: agent.get_fitness(), reverse=True)
+    elite_agents = population[:elite_count]
+
     trimmed_population = select_population(population)
     new_population: list[Agent] = []
     for _ in range(num_agents):
@@ -86,4 +99,5 @@ def evolve_population(population: list, num_agents: int = 100, mutation_rate: fl
     for agent in new_population:
         agent.mutate(mutation_rate, mutation_strength)
     evaluate_fitness(new_population)
+    new_population = elite_agents + new_population[:num_agents - elite_count]
     return new_population

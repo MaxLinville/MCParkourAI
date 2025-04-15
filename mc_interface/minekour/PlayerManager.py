@@ -1,8 +1,8 @@
 import csv
 import re
 
-from minescript import (echo, getblocklist, player_position, player_orientation)
-from minescript import(player_set_orientation, player_press_sprint, player_press_sneak, player_press_jump, player_press_forward, player_press_backward, player_press_left, player_press_right)
+from minescript import echo, getblocklist, player_position
+from minescript import player_set_orientation, player_press_sprint, player_press_sneak, player_press_jump, player_press_forward, player_press_backward, player_press_left, player_press_right
 
 from .SimplifiedBlock import SimplifiedBlock
 from .PlayerMotion import (Motion, MoveType)
@@ -50,7 +50,7 @@ class PlayerManager:
         Returns a list of blocks around the player in Simplified_Block format
         """
         center_point = player_position()
-        point1, point2 = PlayerManager.__get_cube_bounds(center_point, 1)
+        point1, point2 = PlayerManager.__get_cube_bounds(center_point, PlayerManager.DETECTION_RANGE)
         list_of_points = PlayerManager.__generate_cube_coords(point1, point2)
         blocks = getblocklist(list_of_points)
         

@@ -2,9 +2,13 @@
 Agent class to track genes and fitness of each agent as an object
 """
 import numpy as np
+from backend.neural_net import ControlNeuralNetwork
 
 # global variables
-gene_size = 10
+# Global variables - use neural network to determine gene size
+radial_distance = 6
+hidden_layer_sizes = [64, 32]
+gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distance)
 
 class Agent:
     def __init__(self, genes: list[float]):
