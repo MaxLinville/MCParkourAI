@@ -113,6 +113,7 @@ class PlayerManager:
         Resets the player
         """
         None
+        #TODO: 
         
 def init():
     """
