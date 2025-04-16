@@ -20,15 +20,14 @@ Commands and their descriptions
 RESET
     Stops current model from running and resets it to the base position
 GET
-    Gets current score of model
+    Gets current score of model, model will return OK then return the values
 SET
     Sets models new parameters, follwed by parameters and ending with STOP
     
     Model Paramters are as follows:
         #TODO: 
-    
-STOP
-    End of list of parameters
+    STOP
+        End of list of parameters
 START
     Starts running the neural network
 OK
@@ -37,12 +36,26 @@ KILL
     kills the main loop    
 
 TCP Implementation Details
-    Each command will be sent individually then an OK will be recieved, then the next command may be sent.
-    This includes for SET after each parameter set will wait for an OK
+    Between each command and response an OK will be sent, this includes for Set and in between each parameter of SET
+    For example:
+        ->GET
+        <-OK
+        <-SCORE
+        ->OK
+        
+    Example 2:
+        ->SET
+        <-OK
+        ->Parameter1
+        <-OK
+        ->Parameter2
+        ...
+        <-OK
+        ->STOP
+        <-OK
 
 Note that any command while the model is running will implicitly stop the model from running
 """
-
 
 class networkReciever:
     """
@@ -59,10 +72,11 @@ class networkReciever:
     callback_set_values: function = None # for setting parameters of the model, this is expected to be some setter function for the neural network
     callback_run_model: function = None # function to call to run the model again
     callback_stop_model: function = None # function to call when the model is stopped
+    callback_get_score: function = None
     
     isRunning: bool = False # used to indicate whether or not the model is currently running
     
-    def initCallbacks(commands: dict, set_val: function, run_model: function, stop_model: function):
+    def initCallbacks(commands: dict, set_val: function, run_model: function, stop_model: function, get_score: function):
         """
         Initializes callback dictionary with commands
         """
@@ -70,10 +84,11 @@ class networkReciever:
         networkReciever.callback_set_values = set_val
         networkReciever.callback_run_model = run_model
         networkReciever.callback_stop_model = stop_model
+        networkReciever.callback_get_score = get_score
         
         networkReciever.command_map["SET"] = networkReciever.setValues
+        networkReciever.command_map["GET"] = networkReciever.getScore
         
-    
     def initSocket(address: str, port: int = DEFAULT_CONTROL_PORT):
         """
         Opens socket to the given address and starts listening
@@ -136,6 +151,10 @@ class networkReciever:
             echo(f"FAILED TO COMMUNICATE WITH SERVER")
             raise SystemExit(1)
         
-    def setValues(sock: socket):
+    def setValues():
         None
         #TODO: MAX cause I dont understand how to interact with his model
+        
+    def getScore():
+        None
+        #TODO: 
