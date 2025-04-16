@@ -36,7 +36,7 @@ class networkCommander:
     ENCODING = "UTF-8"
     
     
-    def __init__(self, ip: str, port: int, clients: int):
+    def __init__(self, clients: int, ip: str="", port: int = DEFAULT_CONTROL_PORT):
         self.clients = list() #this is just a list of sockets
         self.numClients = clients
         self._lock = Lock()
