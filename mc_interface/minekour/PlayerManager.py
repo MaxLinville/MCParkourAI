@@ -2,7 +2,7 @@ import csv
 import re
 
 from minescript import echo, getblocklist, player_position
-from minescript import player_set_orientation, player_press_sprint, player_press_sneak, player_press_jump, player_press_forward, player_press_backward, player_press_left, player_press_right
+from minescript import player, player_set_orientation, player_press_sprint, player_press_sneak, player_press_jump, player_press_forward, player_press_backward, player_press_left, player_press_right, execute
 
 from .SimplifiedBlock import SimplifiedBlock
 from .PlayerMotion import (Motion, MoveType)
@@ -105,15 +105,17 @@ class PlayerManager:
         """
         Gets the score of this player
         """
-        None
-        #TODO: 
+        str = player(nbt=True).nbt
+        match = re.search(r"XpLevel:(\d*),", str)
+        score = int(match.group(1))
+
+        return score
         
     def resetPlayer():
         """
-        Resets the player
+        Resets the player position and score
         """
-        None
-        #TODO: 
+        execute("/kill @p")
         
 def init():
     """

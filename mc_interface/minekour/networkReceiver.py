@@ -18,7 +18,7 @@ ENCODING = "UTF-8"
 Commands and their descriptions
 
 RESET
-    Stops current model from running and resets it to the base position
+    Stops current model from running and resets it to the base position and score
 GET
     Gets current score of model, model will return OK then return the values
 SET
