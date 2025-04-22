@@ -43,6 +43,9 @@ class ControlNeuralNetwork:
             - 1 state value (0, 1, or 2)
             - 2 continuous values (float in range [-1, 1])
         """
+        # convert Simplified block inputs to int
+        block_inputs = [int(block) for block in block_inputs]
+        
         # Combine inputs
         inputs = np.array(block_inputs + [yaw, pitch])
         

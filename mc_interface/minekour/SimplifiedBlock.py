@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import IntEnum
 
-class SimplifiedBlock(Enum):
+class SimplifiedBlock(IntEnum):
     AIR = 1 #this will include stuff like grass
     SOLID = 2 #note that stairs are modeled as solids
     WATER = 3

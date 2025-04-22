@@ -1,5 +1,6 @@
 import csv
 import re
+import math
 
 from minescript import echo, getblocklist, player_position
 from minescript import player, player_set_orientation, player_press_sprint, player_press_sneak, player_press_jump, player_press_forward, player_press_backward, player_press_left, player_press_right, execute, player_orientation
@@ -39,10 +40,13 @@ class PlayerManager:
         return cube_coords
 
     #also GPT
-    def __get_cube_bounds(center, distance=4) -> tuple[int,int]:
+    def __get_cube_bounds(center: tuple[int, int, int], distance: int=4) -> tuple[int,int]:
         x, y, z = center
-        point1 = (int(x - distance), int(y - distance), int(z - distance))
-        point2 = (int(x + distance), int(y + distance), int(z + distance))
+        x = math.floor(x)
+        y = math.floor(y)
+        z = math.floor(z)
+        point1 = ((x - distance), (y - distance), (z - distance))
+        point2 = ((x + distance), (y + distance), (z + distance))
         return point1, point2
 
     def getBlocksAroundPlayer() -> list[SimplifiedBlock]:
@@ -57,7 +61,18 @@ class PlayerManager:
         #convert this block list to the correct simplified block
         returned_blocks_striped = [re.match(r".*:([^\[]+)", x.upper()).group(1) for x in blocks]
         returned_blocks_enum = [PlayerManager.block_map[x] for x in returned_blocks_striped]
-        echo(returned_blocks_enum)
+
+        # Ensure we return exactly (2*DETECTION_RANGE+1)^3 blocks
+        expected_size = (2*PlayerManager.DETECTION_RANGE+1)**3
+        current_size = len(returned_blocks_enum)
+        
+        if current_size < expected_size:
+            echo(f"Warning: Only got {current_size} blocks, padding with AIR to {expected_size}")
+            returned_blocks_enum.extend([SimplifiedBlock.AIR] * (expected_size - current_size))
+        elif current_size > expected_size:
+            echo(f"Warning: Got {current_size} blocks, truncating to {expected_size}")
+            returned_blocks_enum = returned_blocks_enum[:expected_size]
+
         return returned_blocks_enum
     
     def getRotation() -> tuple[float, float]:
@@ -105,11 +120,17 @@ class PlayerManager:
         """
         Gets the score of this player
         """
-        str = player(nbt=True).nbt
-        match = re.search(r"XpLevel:(\d*),", str)
+        string = player(nbt=True).nbt
+        match = re.search(r"XpLevel:(\d*),", string)
         score = int(match.group(1))
 
-        return score
+        try:
+            if score is None:
+                return 0.0  # Default value if score can't be read
+            return score  # Make sure to convert to string
+        except Exception as e:
+            echo(f"Error getting score: {e}")
+            return 0.0  # Return default on error
         
     def resetPlayer():
         """

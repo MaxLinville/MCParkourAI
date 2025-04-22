@@ -8,7 +8,7 @@ from minekour.networkReceiver import networkReceiver
 from minekour.neural_net import ControlNeuralNetwork
 from minekour.PlayerMotion import Motion, MoveType
 
-from minescript import execute
+from minescript import execute, echo
 
 # callback definitions
 def reset():
@@ -74,6 +74,7 @@ def stopNet():
     """
     pass
 
+
 # parameters
 hidden_layer_sizes = [64, 32]
 radial_distance = 6
@@ -81,6 +82,7 @@ output_size = 8
 gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distance)
 # Generate random weights (genes)
 input_dim = (2*radial_distance+1)**3 + 2
+echo(f"input_dim: {input_dim}")
 scaling_factor = 1/np.sqrt(input_dim)
 
 # run starts here

@@ -94,7 +94,7 @@ class networkCommander:
         #wait for OK
         response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
         if response != "OK":
-            print("WARNING:client {n} responded with non-ok")
+            print(f"WARNING:client {n} responded with non-ok on RESET with response: {response}")
             
     def get(self, n: int):
         """
@@ -106,12 +106,12 @@ class networkCommander:
         #wait for OK
         response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
         if response != "OK":
-            print("WARNING:client {n} responded with non-ok")
+            print(f"WARNING:client {n} responded with non-ok on GET with response: {response}")
         
         #get score
         response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
         print(f"Recieved {response} from client {n}")
-        score = int(response)
+        score = float(response)
         
         #respond OK
         client.send("OK".encode(self.ENCODING))
@@ -128,17 +128,45 @@ class networkCommander:
         # Wait for OK
         response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
         if response != "OK":
-            print(f"WARNING: client {n} responded with non-OK")
+            print(f"WARNING: client {n} responded with non-OK on SET with response: {response}")
             return
         
-        # Send gene data
-        client.send(gene_bytestring)
+        # Split gene data into smaller chunks (each under 1KB)
+        MAX_CHUNK_SIZE = 1000
+        genes = gene_bytestring.decode(self.ENCODING).split(';')
         
-        # Wait for OK
-        response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
-        if response != "OK":
-            print(f"WARNING: client {n} responded with non-OK")
-            return
+        # Send genes in batches
+        batch = []
+        batch_size = 0
+        for gene in genes:
+            if batch_size + len(gene) + 1 > MAX_CHUNK_SIZE:  # +1 for semicolon
+                # Send current batch
+                batch_str = ';'.join(batch)
+                client.send(batch_str.encode(self.ENCODING))
+                
+                # Wait for OK
+                response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
+                if response != "OK":
+                    print(f"WARNING: client {n} responded with non-OK on gene batch")
+                    return
+                    
+                # Reset batch
+                batch = [gene]
+                batch_size = len(gene)
+            else:
+                batch.append(gene)
+                batch_size += len(gene) + 1  # +1 for semicolon
+        
+        # Send any remaining genes
+        if batch:
+            batch_str = ';'.join(batch)
+            client.send(batch_str.encode(self.ENCODING))
+            
+            # Wait for OK
+            response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
+            if response != "OK":
+                print(f"WARNING: client {n} responded with non-OK on final gene batch")
+                return
         
         # Send STOP command
         client.send("STOP".encode(self.ENCODING))
@@ -146,7 +174,7 @@ class networkCommander:
         # Wait for final OK
         response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
         if response != "OK":
-            print(f"WARNING: client {n} responded with non-OK")
+            print(f"WARNING: client {n} responded with non-OK on STOP with response: {response}")
         
     def start(self, n: int):
         """
@@ -158,7 +186,7 @@ class networkCommander:
         #wait for OK
         response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
         if response != "OK":
-            print("WARNING:client {n} responded with non-ok")
+            print(f"WARNING:client {n} responded with non-ok on START with response: {response}")
             
     def kill(self, n: int):
         """
@@ -170,4 +198,4 @@ class networkCommander:
         #wait for OK
         response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
         if response != "OK":
-            print("WARNING:client {n} responded with non-ok")
+            print(f"WARNING:client {n} responded with non-ok on KILL with response: {response}")

@@ -204,9 +204,9 @@ class networkReceiver:
         Gets the score from minecraft scoreboard of the specific player
         """
         score = networkReceiver.callback_get_score()
-        networkReceiver.control_socket.send(score.encode(ENCODING))
+        networkReceiver.control_socket.send(str(score).encode(ENCODING))
         
-        response = networkReceiver.control_socket.recv(networkReceiver.BUFFER_SIZE).decode(networkReceiver.ENCODING)
+        response = networkReceiver.control_socket.recv(BUFFER_SIZE).decode(ENCODING)
         if response != "OK":
             echo("Warning: Non OK recieved on getScore")
             

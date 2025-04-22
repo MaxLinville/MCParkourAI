@@ -18,7 +18,7 @@ class Agent:
         Args:
             genes (list[float]): List of genes for the agent
         """
-        self.genes: list = genes if genes else [0.0 for _ in range(gene_size)]
+        self.genes: list = genes if genes else print("No genes provided, using random genes")
         self.fitness: float = 0.0
 
     def __str__(self) -> str:

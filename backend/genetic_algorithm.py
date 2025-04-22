@@ -32,10 +32,15 @@ def select_population(agents: list[Agent], survivor_ratio: float = 0.2) -> list[
         list[Agent]: List of agents that survived
     """
     agent_weights = [agent.get_fitness() for agent in agents]
-    agent_weights_shifted = [weight - min(agent_weights) for weight in agent_weights]
-    normalized_weights = [weight / sum(agent_weights_shifted) for weight in agent_weights_shifted]
-    survivors = choices(agents, weights=normalized_weights, k=int(len(agents) * survivor_ratio))
-
+    min_weight = min(agent_weights)
+    agent_weights_shifted = [weight - min_weight for weight in agent_weights]
+    total = sum(agent_weights_shifted)
+    if total == 0:
+        # All fitness are equal (likely zero), select randomly
+        survivors = choices(agents, k=int(len(agents) * survivor_ratio))
+    else:
+        normalized_weights = [weight / total for weight in agent_weights_shifted]
+        survivors = choices(agents, weights=normalized_weights, k=int(len(agents) * survivor_ratio))
     return survivors
 
 def crossover(parent1: Agent, parent2: Agent) -> Agent:
