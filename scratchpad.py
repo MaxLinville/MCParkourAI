@@ -1,5 +1,5 @@
 import numpy as np
-from backend.neural_net import ControlNeuralNetwork
+from mc_interface.minekour.neural_net import ControlNeuralNetwork
 
 # Set the same parameters as in the main program
 hidden_layer_sizes = [64, 32]

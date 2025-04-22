@@ -5,7 +5,7 @@ import numpy as np
 from random import choice, choices
 from multiprocessing import Pool # this is for later when it becomes ungodly slow
 from .agent import Agent, gene_size
-from backend.neural_net import ControlNeuralNetwork
+from mc_interface.minekour.neural_net import ControlNeuralNetwork
 
 def generate_population(num_agents: int = 100) -> list[Agent]:
     """

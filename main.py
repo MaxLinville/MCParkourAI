@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 # Import our modules
-from backend.neural_net import ControlNeuralNetwork
+from mc_interface.minekour.neural_net import ControlNeuralNetwork
 from backend.genetic_algorithm import generate_population, evolve_population, evaluate_fitness
 from backend.agent import Agent
 from mc_interface.minekour.networkReceiver import networkReceiver

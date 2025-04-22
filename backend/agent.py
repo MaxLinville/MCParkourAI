@@ -2,7 +2,7 @@
 Agent class to track genes and fitness of each agent as an object
 """
 import numpy as np
-from backend.neural_net import ControlNeuralNetwork
+from mc_interface.minekour.neural_net import ControlNeuralNetwork
 
 # global variables
 # Global variables - use neural network to determine gene size

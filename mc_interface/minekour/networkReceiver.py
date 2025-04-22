@@ -14,6 +14,7 @@ CONTROL_SOCKET_TYPE = socket.SOCK_STREAM #TCP
 BUFFER_SIZE = 2**12
 ENCODING = "UTF-8"
 
+SELECTOR_DELAY = 2 #2 seconds
 """
 Commands and their descriptions
 
@@ -24,8 +25,6 @@ GET
 SET
     Sets models new parameters, follwed by parameters and ending with STOP
     
-    Model Paramters are as follows:
-        #TODO: 
     STOP
         End of list of parameters
 START
@@ -69,19 +68,19 @@ class networkReceiver:
     #callbacks will be called whenever the command is recieved, each callback is mapped to one command
     #note that the SET and RUN callback will be given its own special callback as this will be how the model interacts with Player
     command_map: dict = None
-    callback_set_values: function = None # for setting parameters of the model, this is expected to be some setter function for the neural network
-    callback_run_model: function = None # function to call to run the model again
-    callback_stop_model: function = None # function to call when the model is stopped
-    callback_get_score: function = None
+    callback_set_values: callable = None # for setting parameters of the model, this is expected to be some setter function for the neural network
+    callback_run_model: callable = None # function to call to run the model again
+    callback_stop_model: callable = None # function to call when the model is stopped
+    callback_get_score: callable = None
     
     isRunning: bool = False # used to indicate whether or not the model is currently running
     
     @staticmethod
-    def initCallbacks(commands: dict, set_val: function, run_model: function, stop_model: function, get_score: function):
+    def initCallbacks(set_val: callable, run_model: callable, stop_model: callable, get_score: callable, reset: callable, kill: callable):
         """
         Initializes callback dictionary with commands
         """
-        networkReceiver.command_map = commands
+        networkReceiver.command_map = dict()
         networkReceiver.callback_set_values = set_val
         networkReceiver.callback_run_model = run_model
         networkReceiver.callback_stop_model = stop_model
@@ -89,6 +88,9 @@ class networkReceiver:
         
         networkReceiver.command_map["SET"] = networkReceiver.setValues
         networkReceiver.command_map["GET"] = networkReceiver.getScore
+        networkReceiver.command_map["START"] = networkReceiver.startModel
+        networkReceiver.command_map["RESET"] = reset
+        networkReceiver.command_map["KILL"] = kill
     
     @staticmethod
     def initSocket(address: str, port: int = DEFAULT_CONTROL_PORT):
@@ -125,7 +127,7 @@ class networkReceiver:
                 networkReceiver.callback_run_model()
                 
             #since select is 0 shouldnt ever block
-            for selectable, _ in networkReceiver.selector.select(0):
+            for selectable, _ in networkReceiver.selector.select(SELECTOR_DELAY * int(not networkReceiver.isRunning)):
                 networkReceiver.isRunning = False
                 networkReceiver.callback_stop_model()
                 
@@ -198,7 +200,19 @@ class networkReceiver:
         
     @staticmethod
     def getScore():
-        raise NotImplementedError("getScore not implemented")
         """
         Gets the score from minecraft scoreboard of the specific player
         """
+        score = networkReceiver.callback_get_score()
+        networkReceiver.control_socket.send(score.encode(ENCODING))
+        
+        response = networkReceiver.control_socket.recv(networkReceiver.BUFFER_SIZE).decode(networkReceiver.ENCODING)
+        if response != "OK":
+            echo("Warning: Non OK recieved on getScore")
+            
+    @staticmethod
+    def startModel():
+        """
+        Starts the running of the model
+        """
+        networkReceiver.isRunning = True
