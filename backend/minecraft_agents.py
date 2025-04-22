@@ -48,7 +48,7 @@ class networkCommander:
             
             address = (ip, port)
             
-            self.server_socket.bind()
+            self.server_socket.bind(address)
             self.server_socket.listen()
             
             # add to selector for multiplex
