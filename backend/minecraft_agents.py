@@ -113,15 +113,35 @@ class networkCommander:
         
         return score
     
-    def set(self, n: int):
+    def set(self, n: int, gene_bytestring: bytes):
         """
         Sets new parameters for the client
         """
         client = self.get_client(n)
         client.send("SET".encode(self.ENCODING))
 
-        #TODO
-        client.sendall()
+        # Wait for OK
+        response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
+        if response != "OK":
+            print(f"WARNING: client {n} responded with non-OK")
+            return
+        
+        # Send gene data
+        client.send(gene_bytestring)
+        
+        # Wait for OK
+        response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
+        if response != "OK":
+            print(f"WARNING: client {n} responded with non-OK")
+            return
+        
+        # Send STOP command
+        client.send("STOP".encode(self.ENCODING))
+        
+        # Wait for final OK
+        response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
+        if response != "OK":
+            print(f"WARNING: client {n} responded with non-OK")
         
     def start(self, n: int):
         """
