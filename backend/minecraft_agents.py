@@ -22,7 +22,7 @@ def start_agents(agents: list[int], location: str):
     for n in agents:
         subprocess.run([location, "--launch", f"MinescriptClient{n}", "--profile", f"Minescript{n}"])
 
-start_agents([_+1 for _ in range(32)], "/mnt/c/Users/Max Linville/AppData/Local/Programs/PrismLauncher/prismlauncher.exe")
+# start_agents([_+1 for _ in range(32)], "/mnt/c/Users/Max Linville/AppData/Local/Programs/PrismLauncher/prismlauncher.exe")
 
 class networkCommander:
     """
@@ -109,7 +109,9 @@ class networkCommander:
             print("WARNING:client {n} responded with non-ok")
         
         #get score
-        score = int(client.recv(self.BUFFER_SIZE).decode(self.ENCODING))
+        response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
+        print(f"Recieved {response} from client {n}")
+        score = int(response)
         
         #respond OK
         client.send("OK".encode(self.ENCODING))

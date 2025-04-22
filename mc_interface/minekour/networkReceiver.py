@@ -154,7 +154,7 @@ class networkReceiver:
         except KeyError as err:
             echo(f"Warning: recieved malformed command from server: {data}")
         except OSError as err:
-            echo(f"FAILED TO COMMUNICATE WITH SERVER")
+            echo(f"FAILED TO COMMUNICATE WITH SERVER: {err}")
             raise SystemExit(1)
         
     @staticmethod

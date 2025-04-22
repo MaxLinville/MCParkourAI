@@ -9,11 +9,10 @@ from pathlib import Path
 from mc_interface.minekour.neural_net import ControlNeuralNetwork
 from backend.genetic_algorithm import generate_population, evolve_population, evaluate_fitness
 from backend.agent import Agent
-from mc_interface.minekour.networkReceiver import networkReceiver
 from backend.minecraft_agents import networkCommander
 
 # Configuration
-NUM_AGENTS = 2
+NUM_AGENTS = 1
 NUM_GENERATIONS = 5
 SAVE_EVERY = 1  # Save genes every N generations
 GENES_FILE = "backend/weights.json"

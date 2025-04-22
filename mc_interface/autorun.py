@@ -97,5 +97,5 @@ networkReceiver.initCallbacks(set_val=modifyNet,
                               reset=reset,
                               kill=kill)
 
-networkReceiver.initSocket()
+networkReceiver.initSocket("127.0.0.1", 25567)
 networkReceiver.run()
