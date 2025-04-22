@@ -93,7 +93,7 @@ class networkReceiver:
         networkReceiver.command_map["KILL"] = kill
     
     @staticmethod
-    def initSocket(address: str, port: int = DEFAULT_CONTROL_PORT):
+    def initSocket(address: str = "", port: int = DEFAULT_CONTROL_PORT):
         """
         Opens socket to the given address and starts listening
         """

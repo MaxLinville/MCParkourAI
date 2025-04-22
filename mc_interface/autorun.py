@@ -25,7 +25,7 @@ def kill():
     """
     halts minescript function
     """
-    execute("\killjob")
+    execute("\\killjob")
     raise SystemExit(0)
 
 def modifyNet(recieved_genes):
