@@ -45,6 +45,9 @@ class networkCommander:
         try:
             self.server_socket = socket.socket(self.CONTROL_SOCKET_FAMILY, self.CONTROL_SOCKET_TYPE)
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            
+            address = (ip, port)
+            
             self.server_socket.bind()
             self.server_socket.listen()
             
