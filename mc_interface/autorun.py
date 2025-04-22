@@ -87,6 +87,7 @@ scaling_factor = 1/np.sqrt(input_dim)
 init()
 
 random_genes = [np.random.normal(0, scaling_factor) for _ in range(gene_size)]
+net = None
 modifyNet(random_genes)
 
 networkReceiver.initCallbacks(set_val=modifyNet, 
