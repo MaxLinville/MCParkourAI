@@ -32,6 +32,7 @@ def modifyNet(recieved_genes):
     """
     Modifies neural net and returns new neural net from genes recieved
     """
+    global net
     net =  ControlNeuralNetwork.from_genes(
         genes=recieved_genes,
         hidden_layer_sizes=hidden_layer_sizes,
@@ -41,6 +42,8 @@ def runNet():
     """
     runs neural network and controls the player with the output
     """
+    global net
+    
     inputs = PlayerManager.getBlocksAroundPlayer()
     yaw, pitch = PlayerManager.getRotation()
 
