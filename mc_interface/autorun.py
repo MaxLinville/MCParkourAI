@@ -38,6 +38,9 @@ def modifyNet(recieved_genes) -> ControlNeuralNetwork:
     )
 
 def runNet(net: ControlNeuralNetwork):
+    """
+    runs neural network and controls the player with the output
+    """
     inputs = PlayerManager.getBlocksAroundPlayer()
     yaw, pitch = PlayerManager.getRotation()
 
@@ -63,6 +66,9 @@ def runNet(net: ControlNeuralNetwork):
     PlayerManager.movePlayer(move)
 
 def stopNet():
+    """
+    executes actions needed when the neural net is stopped
+    """
     pass
 
 # parameters
