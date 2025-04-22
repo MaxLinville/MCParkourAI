@@ -157,10 +157,48 @@ class networkReceiver:
         
     @staticmethod
     def setValues():
-        None
-        #TODO: MAX cause I dont understand how to interact with his model
+        """
+        Receives gene parameters from the network until STOP command is received
+        Passes the received parameters to the callback_set_values function
+        """
+        gene_parameters = []
+        sock = networkReceiver.control_socket
+        
+        while True:
+            # Receive parameter
+            data = sock.recv(BUFFER_SIZE).decode(ENCODING)
+            
+            # Check if we've received the STOP command
+            if data == "STOP":
+                sock.send("OK".encode(ENCODING))
+                break
+            
+            # Try to convert the received data to a float (gene value)
+            try:
+                # For gene values transmitted as strings with delimiter ";"
+                if ";" in data:
+                    values = [float(val) for val in data.split(";") if val]
+                    gene_parameters.extend(values)
+                else:
+                    # Single value
+                    gene_parameters.append(float(data))
+                    
+            except ValueError:
+                echo(f"Warning: Received non-numeric parameter: {data}")
+            
+            # Send OK to acknowledge receipt
+            sock.send("OK".encode(ENCODING))
+        
+        # Process the received parameters using the callback
+        if networkReceiver.callback_set_values and gene_parameters:
+            networkReceiver.callback_set_values(gene_parameters)
+            echo(f"Set {len(gene_parameters)} gene parameters")
+        else:
+            echo("Warning: No parameters received or callback not set")
         
     @staticmethod
     def getScore():
-        None
-        #TODO: read scoreboard from the 
+        raise NotImplementedError("getScore not implemented")
+        """
+        Gets the score from minecraft scoreboard of the specific player
+        """
