@@ -62,7 +62,7 @@ def runNet():
     
     move.movement_speed = results[5]
     
-    move.yaw = 365 * results[6]
+    move.yaw = 180 * results[6]
     move.pitch = 90 * results[7]
     
     # move player
