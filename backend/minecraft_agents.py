@@ -22,7 +22,7 @@ def start_agents(agents: list[int], location: str):
     for n in agents:
         subprocess.run([location, "--launch", f"MinescriptClient{n}", "--profile", f"Minescript{n}"])
 
-#start_agents([1,2,3], "C:/Users/ericy/AppData/Local/Programs/PrismLauncher/prismlauncher.exe")
+start_agents([_+1 for _ in range(32)], "/mnt/c/Users/Max Linville/AppData/Local/Programs/PrismLauncher/prismlauncher.exe")
 
 class networkCommander:
     """
@@ -119,7 +119,9 @@ class networkCommander:
         """
         client = self.get_client(n)
         client.send("SET".encode(self.ENCODING))
-        #TODO: MAX
+
+        #TODO
+        client.sendall()
         
     def start(self, n: int):
         """

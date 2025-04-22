@@ -72,6 +72,9 @@ def evaluate_fitness(agents: list[Agent]) -> None:
         # Here you would evaluate the agent's performance in the environment
         # For now, using placeholder fitness calculation
         agent.set_fitness(sum(agent.get_genes()))  # Replace with actual evaluation
+        '''
+        SEND  STUFF TO NETWORK TO BE EXEUCTED AND GET BACK FITNESS RESULTS BEFORE SETTING
+        '''
 
 def evolve_population(population: list, num_agents: int = 100, mutation_rate: float = 0.2, mutation_strength: float = 0.2, elite_count: int = 2) -> list:
     """

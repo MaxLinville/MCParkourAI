@@ -57,7 +57,7 @@ TCP Implementation Details
 Note that any command while the model is running will implicitly stop the model from running
 """
 
-class networkReciever:
+class networkReceiver:
     """
     Class for managing network connections and parsing information from the evolution model
     This class is modeled as a singleton as only program will run per client
@@ -76,19 +76,21 @@ class networkReciever:
     
     isRunning: bool = False # used to indicate whether or not the model is currently running
     
+    @staticmethod
     def initCallbacks(commands: dict, set_val: function, run_model: function, stop_model: function, get_score: function):
         """
         Initializes callback dictionary with commands
         """
-        networkReciever.command_map = commands
-        networkReciever.callback_set_values = set_val
-        networkReciever.callback_run_model = run_model
-        networkReciever.callback_stop_model = stop_model
-        networkReciever.callback_get_score = get_score
+        networkReceiver.command_map = commands
+        networkReceiver.callback_set_values = set_val
+        networkReceiver.callback_run_model = run_model
+        networkReceiver.callback_stop_model = stop_model
+        networkReceiver.callback_get_score = get_score
         
-        networkReciever.command_map["SET"] = networkReciever.setValues
-        networkReciever.command_map["GET"] = networkReciever.getScore
-        
+        networkReceiver.command_map["SET"] = networkReceiver.setValues
+        networkReceiver.command_map["GET"] = networkReceiver.getScore
+    
+    @staticmethod
     def initSocket(address: str, port: int = DEFAULT_CONTROL_PORT):
         """
         Opens socket to the given address and starts listening
@@ -97,40 +99,42 @@ class networkReciever:
             address_control = (address, port)
             
             # build socket and attempt to connect
-            networkReciever.control_socket = socket.socket(CONTROL_SOCKET_FAMILY, CONTROL_SOCKET_TYPE)
-            networkReciever.control_socket.connect(address_control)
+            networkReceiver.control_socket = socket.socket(CONTROL_SOCKET_FAMILY, CONTROL_SOCKET_TYPE)
+            networkReceiver.control_socket.connect(address_control)
             
             # add socket to selector
-            networkReciever.selector = selectors.DefaultSelector()
-            networkReciever.selector.register(networkReciever.control_socket, selectors.EVENT_READ, networkReciever.recieve)
+            networkReceiver.selector = selectors.DefaultSelector()
+            networkReceiver.selector.register(networkReceiver.control_socket, selectors.EVENT_READ, networkReceiver.recieve)
             
-            echo(f"Sucessfully connected to {address_control}")
+            echo(f"Successfully connected to {address_control}")
             
         except OSError as err:
             echo(f"FAILED TO CONNECT TO {address_control}")
             raise SystemExit(1)
         
+    @staticmethod
     def run():
         """
         Main loop that runs both recieving network information and running
         """
-        networkReciever.isRunning = False
+        networkReceiver.isRunning = False
         
         while True:
             #execute
-            if isRunning:
-                networkReciever.callback_run_model()
+            if networkReceiver.isRunning:
+                networkReceiver.callback_run_model()
                 
             #since select is 0 shouldnt ever block
-            for selectable, _ in networkReciever.selector.select(0):
-                isRunning = False
-                networkReciever.callback_stop_model()
+            for selectable, _ in networkReceiver.selector.select(0):
+                networkReceiver.isRunning = False
+                networkReceiver.callback_stop_model()
                 
                 call = selectable.data
                 sock = selectable.fileobj
                 
                 call(sock)
         
+    @staticmethod
     def recieve(sock: socket):
         """
         This function takes the socket reads the next input and determines the next command to run, also sends OK
@@ -142,7 +146,7 @@ class networkReciever:
             
             echo(f"Recived {data} command")
             
-            func = networkReciever.command_map[data]
+            func = networkReceiver.command_map[data]
             func()
             
         except KeyError as err:
@@ -151,10 +155,12 @@ class networkReciever:
             echo(f"FAILED TO COMMUNICATE WITH SERVER")
             raise SystemExit(1)
         
+    @staticmethod
     def setValues():
         None
         #TODO: MAX cause I dont understand how to interact with his model
         
+    @staticmethod
     def getScore():
         None
-        #TODO: 
+        #TODO: read scoreboard from the 
