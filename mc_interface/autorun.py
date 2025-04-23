@@ -47,7 +47,7 @@ def checkDead() -> bool:
     
     pos = np.array(player_position())
     
-    return np.linalg.norm(death_loc - pos) <= death_tolerance
+    return abs(np.linalg.norm(death_loc - pos)) <= death_tolerance
 
 def runNet():
     """

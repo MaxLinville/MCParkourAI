@@ -264,3 +264,4 @@ class networkReceiver:
         if networkReceiver.callback_is_dead():
             networkReceiver.dead_socket.send("DEAD".encode(ENCODING))
             networkReceiver.isRunning = False
+            echo("PLAYER IS DEAD")
