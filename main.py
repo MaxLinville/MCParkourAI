@@ -130,20 +130,20 @@ def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommande
             
         # Wait for all agents in the batch to complete
         completed_agents: set = set()
-        
         # Continue until all agents in this batch have completed or timed out
         while len(completed_agents) < batch_size:
             dead_agents = commander.getDead()
-
+            print(f"Dead agents: {dead_agents}")
             # Check each active client in the batch
             for dead_agent in dead_agents:
-                
                 # Skip already completed agents
                 if dead_agent in completed_agents:
                     continue              
 
+                print(f"Agent {dead_agent} has completed.")
                 fitness = commander.get(dead_agent)
-                
+                commander.reset(dead_agent)
+
                 # Check if we got a valid fitness value
                 if fitness is not None and fitness != -1:
                     # Store fitness in the correct agent
@@ -156,6 +156,7 @@ def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommande
             
             # Short delay before checking again
             time.sleep(1)
+        print(f"Batch {batch_start // BATCH_SIZE + 1} completed. All agents evaluated.")
 
 def main() -> None:
     # Initialize paths

@@ -172,3 +172,5 @@ cython_debug/
 
 # virtual environments
 .venv*/
+
+weights.json
