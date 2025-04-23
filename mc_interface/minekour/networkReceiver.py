@@ -59,9 +59,20 @@ Note that any command while the model is running will implicitly stop the model 
 DEAD SOCKET
     Dead socket will not expect any response from the server, this is a write-only socket
 
+    example:
+        *player dies*
+        <- "DEAD"
+
 CONNECTION PROTOCOL
     When connecting the server will send an ID to the client, the client will then connect to the DEAD_SOCKET
     and send this ID
+
+    example:
+        <- Connect to Control Socket
+        -> [ID]
+        
+        <- Connect to Dead Socket
+        <- [ID]
 
 """
 
