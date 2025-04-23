@@ -2,6 +2,7 @@
 Script that each minescript agent will autorun upon start
 """
 import numpy as np
+import time
 
 from minekour.PlayerManager import PlayerManager, init
 from minekour.networkReceiver import networkReceiver
@@ -42,18 +43,25 @@ def checkDead() -> bool:
     """
     Checks if the player is in the dead zone and returns true if so
     """
+    global last_run
+    
     death_loc = np.array((23,1,-1))
     death_tolerance = 2
     
     pos = np.array(player_position())
     
-    return abs(np.linalg.norm(death_loc - pos)) <= death_tolerance
+    last_run = -1
+    return abs(np.linalg.norm(death_loc - pos)) <= death_tolerance or time.time - last_run < timout
 
 def runNet():
     """
     runs neural network and controls the player with the output
     """
     global net
+    global last_run
+    
+    if last_run == -1:
+        last_run = time.time()
     
     # run network and move
     inputs = PlayerManager.getBlocksAroundPlayer()
@@ -94,6 +102,7 @@ gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distan
 # Generate random weights (genes)
 input_dim = (2*radial_distance+1)**3 + 2
 scaling_factor = 1/np.sqrt(input_dim)
+timout = 120 #seconds before giving up
 
 # run starts here
 init()
@@ -101,6 +110,8 @@ init()
 random_genes = [np.random.normal(0, scaling_factor) for _ in range(gene_size)]
 net = None
 modifyNet(random_genes)
+
+last_run = -1
 
 networkReceiver.initCallbacks(set_val=modifyNet, 
                               run_model=runNet, 
