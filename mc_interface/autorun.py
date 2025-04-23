@@ -51,7 +51,7 @@ def checkDead() -> bool:
     pos = np.array(player_position())
     
     last_run = -1
-    return abs(np.linalg.norm(death_loc - pos)) <= death_tolerance or time.time - last_run < timout
+    return abs(np.linalg.norm(death_loc - pos)) <= death_tolerance or time.time() - last_run < timout
 
 def runNet():
     """
