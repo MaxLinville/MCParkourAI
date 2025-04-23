@@ -8,7 +8,7 @@ from minekour.networkReceiver import networkReceiver
 from minekour.neural_net import ControlNeuralNetwork
 from minekour.PlayerMotion import Motion, MoveType
 
-from minescript import execute, echo
+from minescript import execute, player_position
 
 # callback definitions
 def reset():
@@ -38,12 +38,24 @@ def modifyNet(recieved_genes):
         hidden_layer_sizes=hidden_layer_sizes,
         radial_distance=radial_distance)
 
+def checkDead() -> bool:
+    """
+    Checks if the player is in the dead zone and returns true if so
+    """
+    death_loc = np.array((23,1,-1))
+    death_tolerance = 2
+    
+    pos = np.array(player_position())
+    
+    return np.linalg.norm(death_loc - pos) <= death_tolerance
+
 def runNet():
     """
     runs neural network and controls the player with the output
     """
     global net
     
+    # run network and move
     inputs = PlayerManager.getBlocksAroundPlayer()
     yaw, pitch = PlayerManager.getRotation()
 
@@ -74,7 +86,6 @@ def stopNet():
     """
     pass
 
-
 # parameters
 hidden_layer_sizes = [64, 32]
 radial_distance = 6
@@ -82,7 +93,6 @@ output_size = 8
 gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distance)
 # Generate random weights (genes)
 input_dim = (2*radial_distance+1)**3 + 2
-echo(f"input_dim: {input_dim}")
 scaling_factor = 1/np.sqrt(input_dim)
 
 # run starts here
@@ -97,7 +107,8 @@ networkReceiver.initCallbacks(set_val=modifyNet,
                               stop_model=stopNet, 
                               get_score=PlayerManager.getScore, 
                               reset=reset,
-                              kill=kill)
+                              kill=kill,
+                              dead=checkDead)
 
-networkReceiver.initSocket("127.0.0.1", 25567)
+networkReceiver.initSocket("127.0.0.1", 25567, 25568)
 networkReceiver.run()

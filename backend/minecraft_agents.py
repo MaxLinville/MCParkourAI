@@ -29,6 +29,7 @@ class networkCommander:
     This class manages incoming connections and provides methods to send commands to clients
     """
     DEFAULT_CONTROL_PORT = 25567
+    DEFAULT_DEAD_PORT = 25568
     CONTROL_SOCKET_FAMILY = socket.AF_INET #IPV4
     CONTROL_SOCKET_TYPE = socket.SOCK_STREAM #TCP
 
@@ -36,13 +37,15 @@ class networkCommander:
     ENCODING = "UTF-8"
     
     
-    def __init__(self, clients: int, ip: str="", port: int = DEFAULT_CONTROL_PORT):
+    def __init__(self, clients: int, ip: str="", port: int = DEFAULT_CONTROL_PORT, dead_port: int = DEFAULT_DEAD_PORT):
         self.clients = list() #this is just a list of sockets
-        self.numClients = clients
+        self.num_clients = clients
         self._lock = Lock()
         
         # init socket
         try:
+            
+            #listener socket
             self.server_socket = socket.socket(self.CONTROL_SOCKET_FAMILY, self.CONTROL_SOCKET_TYPE)
             self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             
@@ -50,6 +53,17 @@ class networkCommander:
             
             self.server_socket.bind(address)
             self.server_socket.listen()
+            
+            #do dead port now
+            self.dead_socket = socket.socket(self.CONTROL_SOCKET_FAMILY, self.CONTROL_SOCKET_TYPE)
+            self.dead_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            
+            dead_address = (ip, dead_port)
+            
+            self.dead_socket.bind(dead_address)
+            self.dead_socket.listen()
+            
+            self.dead_selector = selectors.DefaultSelector()
             
             # add to selector for multiplex
             self.selector = selectors.DefaultSelector()
@@ -63,7 +77,7 @@ class networkCommander:
         Waits for numClient number of clients to connect and adds them to the socket, clients are assigned numerical IDs based on join order
         This function will block until all clients connect
         """        
-        while len(self.clients) < self.numClients:
+        while len(self.clients) < self.num_clients:
             for selectable, _ in self.selector.select():
                 call = selectable.data
                 call(selectable.fileobj)
@@ -72,6 +86,16 @@ class networkCommander:
         peer_socket, _ = server_socket.accept()
         self.clients.append(peer_socket)
         print(f"connected to client #{len(self.clients)}")
+        
+        # send ID to client
+        peer_socket.send(str(len(self.clients)-1).encode(networkCommander.ENCODING))
+        
+    def accept_client_dead(self, server_socket: socket):
+        peer_socket, _ = server_socket.accept()
+        
+        # get ID
+        id = int(peer_socket.recv(networkCommander.BUFFER_SIZE).decode(networkCommander.ENCODING))
+        self.dead_selector.register(self.server_socket, selectors.EVENT_READ, id)
         
     def get_client(self, n:int) -> socket:
         """
@@ -199,3 +223,15 @@ class networkCommander:
         response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
         if response != "OK":
             print(f"WARNING:client {n} responded with non-ok on KILL with response: {response}")
+            
+    def getDead(self) -> list[int]:
+        """
+        gets a list of dead IDs
+        """
+        dead_ids = list()
+        
+        for selectable, _ in self.dead_selector.select(0):
+            id = selectable.data
+            dead_ids.append(id)
+            
+        return dead_ids

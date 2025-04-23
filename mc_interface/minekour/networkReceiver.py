@@ -8,6 +8,7 @@ This file defines functions responsible for communicating with the evolution mod
 """
 
 DEFAULT_CONTROL_PORT = 25567
+DEFAULT_DEAD_PORT = 25568
 CONTROL_SOCKET_FAMILY = socket.AF_INET #IPV4
 CONTROL_SOCKET_TYPE = socket.SOCK_STREAM #TCP
 
@@ -54,6 +55,14 @@ TCP Implementation Details
         <-OK
 
 Note that any command while the model is running will implicitly stop the model from running
+
+DEAD SOCKET
+    Dead socket will not expect any response from the server, this is a write-only socket
+
+CONNECTION PROTOCOL
+    When connecting the server will send an ID to the client, the client will then connect to the DEAD_SOCKET
+    and send this ID
+
 """
 
 class networkReceiver:
@@ -63,6 +72,7 @@ class networkReceiver:
     """
     
     control_socket: socket = None
+    dead_socket: socket = None
     selector = selectors.DefaultSelector()
     
     #callbacks will be called whenever the command is recieved, each callback is mapped to one command
@@ -72,11 +82,14 @@ class networkReceiver:
     callback_run_model: callable = None # function to call to run the model again
     callback_stop_model: callable = None # function to call when the model is stopped
     callback_get_score: callable = None
+    callback_is_dead: callable = None
     
     isRunning: bool = False # used to indicate whether or not the model is currently running
     
+    id = -1
+    
     @staticmethod
-    def initCallbacks(set_val: callable, run_model: callable, stop_model: callable, get_score: callable, reset: callable, kill: callable):
+    def initCallbacks(set_val: callable, run_model: callable, stop_model: callable, get_score: callable, reset: callable, kill: callable, dead: callable):
         """
         Initializes callback dictionary with commands
         """
@@ -85,6 +98,7 @@ class networkReceiver:
         networkReceiver.callback_run_model = run_model
         networkReceiver.callback_stop_model = stop_model
         networkReceiver.callback_get_score = get_score
+        networkReceiver.callback_is_dead = dead
         
         networkReceiver.command_map["SET"] = networkReceiver.setValues
         networkReceiver.command_map["GET"] = networkReceiver.getScore
@@ -93,25 +107,36 @@ class networkReceiver:
         networkReceiver.command_map["KILL"] = kill
     
     @staticmethod
-    def initSocket(address: str = "", port: int = DEFAULT_CONTROL_PORT):
+    def initSocket(address: str = "", port: int = DEFAULT_CONTROL_PORT, dead_port = DEFAULT_DEAD_PORT):
         """
         Opens socket to the given address and starts listening
         """
         try:
             address_control = (address, port)
+            address_dead = (address, dead_port)
             
             # build socket and attempt to connect
             networkReceiver.control_socket = socket.socket(CONTROL_SOCKET_FAMILY, CONTROL_SOCKET_TYPE)
             networkReceiver.control_socket.connect(address_control)
             
+            # get id
+            networkReceiver.id = int(networkReceiver.control_socket.recv(BUFFER_SIZE).decode(ENCODING))
+            
             # add socket to selector
             networkReceiver.selector = selectors.DefaultSelector()
             networkReceiver.selector.register(networkReceiver.control_socket, selectors.EVENT_READ, networkReceiver.recieve)
             
+            # build dead socket and attempt to connect
+            networkReceiver.dead_socket = socket.socket(CONTROL_SOCKET_FAMILY, CONTROL_SOCKET_TYPE)
+            networkReceiver.dead_socket.connect(address_dead)
+            
+            # send ID to dead socket
+            networkReceiver.dead_socket.send(str(networkReceiver.id).encode(ENCODING))
+            
             echo(f"Successfully connected to {address_control}")
             
         except OSError as err:
-            echo(f"FAILED TO CONNECT TO {address_control}")
+            echo(f"FAILED TO CONNECT TO {address_control} OR {address_dead}")
             raise SystemExit(1)
         
     @staticmethod
@@ -123,6 +148,9 @@ class networkReceiver:
         
         while True:
             #execute
+            if networkReceiver.isRunning:
+                networkReceiver.checkDead()
+            
             if networkReceiver.isRunning:
                 networkReceiver.callback_run_model()
                 
@@ -216,3 +244,12 @@ class networkReceiver:
         Starts the running of the model
         """
         networkReceiver.isRunning = True
+        
+    @staticmethod
+    def checkDead():
+        """
+        Checks if player is dead using a callback and then sends "DEAD" to the server and stops the model
+        """
+        if networkReceiver.callback_is_dead():
+            networkReceiver.dead_socket.send("DEAD".encode(ENCODING))
+            networkReceiver.isRunning = False
