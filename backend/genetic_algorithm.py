@@ -81,7 +81,7 @@ def evaluate_fitness(agents: list[Agent]) -> None:
         SEND  STUFF TO NETWORK TO BE EXEUCTED AND GET BACK FITNESS RESULTS BEFORE SETTING
         '''
 
-def evolve_population(population: list, num_agents: int = 100, mutation_rate: float = 0.2, mutation_strength: float = 0.2, elite_count: int = 2) -> list:
+def evolve_population(population: list[Agent], num_agents: int = 100, mutation_rate: float = 0.2, mutation_strength: float = 0.2, elite_count: int = 1) -> list:
     """
     Evolves the population by selecting, crossing over, and mutating agents
 
@@ -94,11 +94,14 @@ def evolve_population(population: list, num_agents: int = 100, mutation_rate: fl
     Returns:
         list: New population of agents
     """    
-    evaluate_fitness(population)
-    population.sort(key=lambda agent: agent.get_fitness(), reverse=True)
+    print(f"Number of agents in population: {len(population)}")
     elite_agents = population[:elite_count]
 
-    trimmed_population = select_population(population)
+    trimmed_population = select_population(population[elite_count:])
+    if len(trimmed_population) < 2:
+        print("Warning: Selection produced too few parents, using all non-elite agents")
+        trimmed_population = population[elite_count:]  # Use all non-elite as parents
+    print(f"Number of agents in trimmed population: {len(trimmed_population)}")
     new_population: list[Agent] = []
     for _ in range(num_agents):
         parent1: Agent = choice(trimmed_population)

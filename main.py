@@ -9,10 +9,10 @@ from pathlib import Path
 from mc_interface.minekour.neural_net import ControlNeuralNetwork
 from backend.genetic_algorithm import generate_population, evolve_population, evaluate_fitness
 from backend.agent import Agent
-from backend.minecraft_agents import networkCommander
+from backend.minecraft_agents import networkCommander, start_agents
 
 # Configuration
-NUM_AGENTS = 2
+NUM_AGENTS = 5
 NUM_GENERATIONS = 5
 SAVE_EVERY = 1  # Save genes every N generations
 GENES_FILE = "backend/weights.json"
@@ -133,14 +133,12 @@ def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommande
         # Continue until all agents in this batch have completed or timed out
         while len(completed_agents) < batch_size:
             dead_agents = commander.getDead()
-            print(f"Dead agents: {dead_agents}")
             # Check each active client in the batch
             for dead_agent in dead_agents:
                 # Skip already completed agents
                 if dead_agent in completed_agents:
                     continue              
 
-                print(f"Agent {dead_agent} has completed.")
                 fitness = commander.get(dead_agent)
                 commander.reset(dead_agent)
 
@@ -156,14 +154,15 @@ def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommande
             
             # Short delay before checking again
             time.sleep(1)
-        print(f"Batch {batch_start // BATCH_SIZE + 1} completed. All agents evaluated.")
+        print(f"Batch {batch_start // BATCH_SIZE + 1} completed. All agents evaluated.\n")
 
 def main() -> None:
     # Initialize paths
     genes_path = Path(GENES_FILE)
     
     # Load existing genes if available
-    genes_dict = load_genes_from_file(genes_path)
+    # genes_dict = load_genes_from_file(genes_path)
+    genes_dict = {}
     
     # Create population
     population = create_population(genes_dict, NUM_AGENTS)
@@ -187,6 +186,7 @@ def main() -> None:
         population.sort(key=lambda agent: agent.get_fitness(), reverse=True)
         print(f"Best fitness: {population[0].get_fitness()}")
         print(f"Average fitness: {sum(agent.get_fitness() for agent in population) / len(population)}")
+        print(f"Top 2 agents: {[agent.get_fitness() for agent in population[:2]]}")
         
         # Save genes periodically
         if (generation + 1) % SAVE_EVERY == 0 or generation == NUM_GENERATIONS - 1:
