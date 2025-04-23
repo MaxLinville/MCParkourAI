@@ -2,6 +2,7 @@ import json
 import os
 import numpy as np
 import time
+import csv
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 from threading import Thread
@@ -13,7 +14,7 @@ from backend.agent import Agent
 from backend.minecraft_agents import networkCommander, start_agents
 
 # Configuration
-NUM_AGENTS = 40
+NUM_AGENTS = 128
 NUM_GENERATIONS = 5
 SAVE_EVERY = 1  # Save genes every N generations
 GENES_FILE = "backend/weights.json"
@@ -21,7 +22,41 @@ HIDDEN_LAYER_SIZES = [64, 32]
 RADIAL_DISTANCE = 6
 MUTATION_RATE = 0.2
 MUTATION_STRENGTH = 0.5
-BATCH_SIZE = 8  # Number of agents to evaluate in parallel
+#TODO: reduce strength and rate as generation increases ?
+BATCH_SIZE = 16  # Number of agents to evaluate in parallel
+METRICS_FILE = "fitness_metrics.csv"  # New file for tracking fitness metrics
+
+def save_metrics_to_csv(generation: int, best_fitness: float, avg_fitness: float, file_path: str) -> None:
+    """
+    Save generation metrics to a CSV file
+    
+    Args:
+        generation (int): Current generation number
+        best_fitness (float): Best fitness in the generation
+        avg_fitness (float): Average fitness in the generation
+        file_path (str): Path to save the CSV file
+    """
+    file_exists = os.path.exists(file_path)
+    
+    with open(file_path, 'a', newline='') as f:
+        writer = csv.writer(f)
+        
+        # Write header if file is new
+        if not file_exists:
+            # Include important parameters in the header
+            writer.writerow(["# Parameters:"])
+            writer.writerow(["# Population Size", NUM_AGENTS])
+            writer.writerow(["# Generations", NUM_GENERATIONS])
+            writer.writerow(["# Mutation Rate", MUTATION_RATE])
+            writer.writerow(["# Mutation Strength", MUTATION_STRENGTH])
+            writer.writerow(["# Hidden Layers", HIDDEN_LAYER_SIZES])
+            writer.writerow(["# Radial Distance", RADIAL_DISTANCE])
+            writer.writerow(["# Batch Size", BATCH_SIZE])
+            writer.writerow([])  # Empty row for separation
+            writer.writerow(["Generation", "Best Fitness", "Average Fitness"])
+            
+        # Write the metrics for this generation
+        writer.writerow([generation + 1, best_fitness, avg_fitness])
 
 def load_genes_from_file(file_path: str) -> Dict[str, List[float]]:
     """
@@ -115,32 +150,49 @@ def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommande
         
         print(f"Evaluating batch of {batch_size} agents (indices {batch_start}-{batch_end-1})")
         
-        # Start all agents in this batch simultaneously
-        for i, agent in enumerate(batch_agents):
-            client_id = i  # Client ID will be 0-31 (within the batch)
+        thread_list: List[Thread] = []
+
+        def set_thread_functions(client_id: int, gene_bytestring: bytes) -> None:
+            """
+            Thread function to set genes for a client
             
+            Args:
+                client_id (int): Client ID
+                gene_bytestring (bytes): Bytestring of genes
+            """
             # Reset the environment for this client
             commander.reset(client_id)
             
             # Send genes to client
-            gene_bytestring = genes_to_bytestring(agent.get_genes())
             commander.set(client_id, gene_bytestring)  # Using updated set() method
             
             # Start the simulation for this client
             commander.start(client_id)
-            
+
+        # Start all agents in this batch simultaneously
+        for i, agent in enumerate(batch_agents):
+            client_id = i  # Client ID will be 0-31 (within the batch)
+            gene_bytestring = genes_to_bytestring(agent.get_genes())
+            setup_thread = Thread(target=set_thread_functions, args=(client_id, gene_bytestring))
+            thread_list.append(setup_thread)
+            setup_thread.start()
+
+        for thread in thread_list:
+            thread.join()  # Wait for all threads to finish
+        
         # Wait for all agents in the batch to complete
         completed_agents: set = set()
         # Continue until all agents in this batch have completed or timed out
         while len(completed_agents) < batch_size:
             dead_agents = commander.getDead()
             # Check each active client in the batch
-            for dead_agent in dead_agents:
+            for dead_agent, time_taken in dead_agents:
                 # Skip already completed agents
                 if dead_agent in completed_agents:
                     continue              
 
-                fitness = commander.get(dead_agent)
+                print(f"Agent {batch_start + dead_agent} is dead. Time taken: {time_taken}")
+                fitness = commander.get(dead_agent)/(time_taken+5)
                 commander.reset(dead_agent)
 
                 # Check if we got a valid fitness value
@@ -160,7 +212,8 @@ def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommande
 def main() -> None:
     # Initialize paths
     genes_path = Path(GENES_FILE)
-    
+    metrics_path = Path(METRICS_FILE)
+
     # Load existing genes if available
     genes_dict = load_genes_from_file(genes_path)
     # genes_dict = {}
@@ -188,9 +241,15 @@ def main() -> None:
         
         # Display results
         population.sort(key=lambda agent: agent.get_fitness(), reverse=True)
-        print(f"Best fitness: {population[0].get_fitness()}")
-        print(f"Average fitness: {sum(agent.get_fitness() for agent in population) / len(population)}")
-        print(f"Top 2 agents: {[agent.get_fitness() for agent in population[:2]]}")
+        best_fitness = population[0].get_fitness()
+        avg_fitness = sum(agent.get_fitness() for agent in population) / len(population)
+        
+        print(f"Best fitness: {best_fitness}")
+        print(f"Average fitness: {avg_fitness}")
+        print(f"Top 5 agents: {[agent.get_fitness() for agent in population[:5]]}")
+        
+        # Save metrics to CSV
+        save_metrics_to_csv(generation, best_fitness, avg_fitness, metrics_path)
         
         # Save genes periodically
         if (generation + 1) % SAVE_EVERY == 0 or generation == NUM_GENERATIONS - 1:
@@ -208,6 +267,7 @@ def main() -> None:
     # Final save
     save_genes_to_file(population, genes_path)
     print("Genetic algorithm completed!")
+    print(f"Fitness metrics saved to {metrics_path}")
 
 if __name__ == "__main__":
     main()

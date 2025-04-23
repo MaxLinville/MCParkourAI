@@ -174,3 +174,4 @@ cython_debug/
 .venv*/
 
 weights.json
+fitness_metrics.csv

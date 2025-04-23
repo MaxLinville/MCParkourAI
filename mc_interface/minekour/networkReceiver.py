@@ -262,7 +262,6 @@ class networkReceiver:
         Checks if player is dead using a callback and then sends "DEAD" to the server and stops the model
         """
         dead, time = networkReceiver.callback_is_dead()
-        
         if dead:
             networkReceiver.dead_socket.send(str(time).encode(ENCODING))
             networkReceiver.isRunning = False

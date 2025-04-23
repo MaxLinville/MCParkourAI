@@ -39,14 +39,14 @@ def modifyNet(recieved_genes):
         hidden_layer_sizes=hidden_layer_sizes,
         radial_distance=radial_distance)
 
-def checkDead() -> (bool, float):
+def checkDead() -> tuple[bool, float]:
     """
     Checks if the player is in the dead zone and returns true if so
     """
     global last_run_time
     if (last_run_time == -1):
         echo("last_run_time was -1, returning false")
-        return False
+        return (False, -1,)
     
     death_loc = np.array((23,1,-1))
     death_tolerance = 2
@@ -55,7 +55,8 @@ def checkDead() -> (bool, float):
     
     at_death =  abs(np.linalg.norm(death_loc - pos)) <= death_tolerance
     current_time = time.time()
-    death_time = current_time - last_run_time > timeout
+    runtime = current_time - last_run_time
+    death_time = runtime > timeout
     
     is_dead = at_death or death_time
 
@@ -63,7 +64,7 @@ def checkDead() -> (bool, float):
         echo(f"at_death: {at_death}, death_time: {death_time}")
         echo(f"last_run_time: {last_run_time}, current time: {current_time}")
         last_run_time = -1
-    return (is_dead, current_time - last_run_time)
+    return (is_dead, runtime,)
 
 def runNet():
     """
