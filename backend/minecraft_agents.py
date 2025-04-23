@@ -68,6 +68,7 @@ class networkCommander:
             # add to selector for multiplex
             self.selector = selectors.DefaultSelector()
             self.selector.register(self.server_socket, selectors.EVENT_READ, self.accept_client)
+            self.selector.register(self.dead_socket, selectors.EVENT_READ, self.accept_client_dead)
             
         except OSError as err:
             print(f"Failed to open listener on {ip}:{port}")
