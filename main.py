@@ -12,7 +12,7 @@ from backend.agent import Agent
 from backend.minecraft_agents import networkCommander
 
 # Configuration
-NUM_AGENTS = 1
+NUM_AGENTS = 2
 NUM_GENERATIONS = 5
 SAVE_EVERY = 1  # Save genes every N generations
 GENES_FILE = "backend/weights.json"
@@ -20,6 +20,7 @@ HIDDEN_LAYER_SIZES = [64, 32]
 RADIAL_DISTANCE = 6
 MUTATION_RATE = 0.2
 MUTATION_STRENGTH = 0.5
+BATCH_SIZE = 1  # Number of agents to evaluate in parallel
 
 def load_genes_from_file(file_path: str) -> Dict[str, List[float]]:
     """
@@ -105,9 +106,9 @@ def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommande
         agents (List[Agent]): List of agents to evaluate
         commander (networkCommander): Network commander for Minecraft communication
     """
-    # Process agents in batches of up to 32
-    for batch_start in range(0, len(agents), 32):
-        batch_end = min(batch_start + 32, len(agents))
+    # Process agents in batches of up to batch size
+    for batch_start in range(0, len(agents), BATCH_SIZE):
+        batch_end = min(batch_start + BATCH_SIZE, len(agents))
         batch_agents = agents[batch_start:batch_end]
         batch_size = len(batch_agents)
         
@@ -128,23 +129,20 @@ def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommande
             commander.start(client_id)
             
         # Wait for all agents in the batch to complete
-        completed_agents = set()
-        
-        max_wait_time = 120  # Maximum wait time in seconds
-        start_time = time.time()
+        completed_agents: set = set()
         
         # Continue until all agents in this batch have completed or timed out
-        while len(completed_agents) < batch_size and time.time() - start_time < max_wait_time:
+        while len(completed_agents) < batch_size:
+            dead_agents = commander.getDead()
+
             # Check each active client in the batch
-            for i in range(batch_size):
-                client_id = i
+            for dead_agent in dead_agents:
                 
                 # Skip already completed agents
-                if i in completed_agents:
-                    continue
-                
-                # Try to get fitness score
-                fitness = commander.get(client_id)
+                if dead_agent in completed_agents:
+                    continue              
+
+                fitness = commander.get(dead_agent)
                 
                 # Check if we got a valid fitness value
                 if fitness is not None and fitness != -1:
@@ -153,18 +151,11 @@ def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommande
                     agents[agent_idx].set_fitness(fitness)
                     
                     # Mark as completed
-                    completed_agents.add(i)
+                    completed_agents.add(dead_agent)
                     print(f"Agent {agent_idx} evaluated. Fitness: {fitness}")
             
             # Short delay before checking again
             time.sleep(1)
-        
-        # Handle any timed-out agents
-        for i in range(batch_size):
-            if i not in completed_agents:
-                agent_idx = batch_start + i
-                print(f"Warning: Agent {agent_idx} evaluation timed out. Assigning minimum fitness.")
-                agents[agent_idx].set_fitness(0)
 
 def main() -> None:
     # Initialize paths
@@ -177,10 +168,10 @@ def main() -> None:
     population = create_population(genes_dict, NUM_AGENTS)
     
     # Initialize network commander for communicating with Minecraft instances
-    commander = networkCommander(NUM_AGENTS)
+    commander = networkCommander(BATCH_SIZE)
     
     # Wait for Minecraft clients to connect
-    print(f"Waiting for {NUM_AGENTS} Minecraft clients to connect...")
+    print(f"Waiting for {BATCH_SIZE} Minecraft clients to connect...")
     commander.wait_for_clients()
     print("All clients connected!")
     

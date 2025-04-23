@@ -9,7 +9,7 @@ from minekour.networkReceiver import networkReceiver
 from minekour.neural_net import ControlNeuralNetwork
 from minekour.PlayerMotion import Motion, MoveType
 
-from minescript import execute, player_position
+from minescript import execute, player_position, echo
 
 # callback definitions
 def reset():
@@ -43,17 +43,26 @@ def checkDead() -> bool:
     """
     Checks if the player is in the dead zone and returns true if so
     """
-    global last_run
+    global last_run_time
+    if (last_run_time == -1):
+        echo("last_run_time was -1, returning false")
+        return False
     
     death_loc = np.array((23,1,-1))
     death_tolerance = 2
     
     pos = np.array(player_position())
     
-    is_dead = abs(np.linalg.norm(death_loc - pos)) <= death_tolerance or time.time() - last_run < timeout
+    at_death =  abs(np.linalg.norm(death_loc - pos)) <= death_tolerance
+    current_time = time.time()
+    death_time = current_time - last_run_time > timeout
     
+    is_dead = at_death or death_time
+
     if is_dead:
-        last_run = -1
+        echo(f"at_death: {at_death}, death_time: {death_time}")
+        echo(f"last_run_time: {last_run_time}, current time: {current_time}")
+        last_run_time = -1
     return is_dead
 
 def runNet():
@@ -61,10 +70,12 @@ def runNet():
     runs neural network and controls the player with the output
     """
     global net
-    global last_run
+    global last_run_time
     
-    if last_run == -1:
-        last_run = time.time()
+    if last_run_time == -1:
+        echo("last_run_time was -1, setting to current time")
+        last_run_time = time.time()
+        echo(f"current time: {last_run_time}")
     
     # run network and move
     inputs = PlayerManager.getBlocksAroundPlayer()
@@ -105,7 +116,7 @@ gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distan
 # Generate random weights (genes)
 input_dim = (2*radial_distance+1)**3 + 2
 scaling_factor = 1/np.sqrt(input_dim)
-timeout = 120 #seconds before giving up
+timeout = 10 #seconds before giving up
 
 # run starts here
 init()
@@ -114,7 +125,7 @@ random_genes = [np.random.normal(0, scaling_factor) for _ in range(gene_size)]
 net = None
 modifyNet(random_genes)
 
-last_run = -1
+last_run_time = -1
 
 networkReceiver.initCallbacks(set_val=modifyNet, 
                               run_model=runNet, 
