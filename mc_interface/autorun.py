@@ -50,8 +50,11 @@ def checkDead() -> bool:
     
     pos = np.array(player_position())
     
-    last_run = -1
-    return abs(np.linalg.norm(death_loc - pos)) <= death_tolerance or time.time() - last_run < timout
+    is_dead = abs(np.linalg.norm(death_loc - pos)) <= death_tolerance or time.time() - last_run < timeout
+    
+    if is_dead:
+        last_run = -1
+    return is_dead
 
 def runNet():
     """
@@ -102,7 +105,7 @@ gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distan
 # Generate random weights (genes)
 input_dim = (2*radial_distance+1)**3 + 2
 scaling_factor = 1/np.sqrt(input_dim)
-timout = 120 #seconds before giving up
+timeout = 120 #seconds before giving up
 
 # run starts here
 init()
