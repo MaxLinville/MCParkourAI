@@ -96,7 +96,7 @@ class networkCommander:
         
         # get ID
         id = int(peer_socket.recv(networkCommander.BUFFER_SIZE).decode(networkCommander.ENCODING))
-        self.dead_selector.register(self.peer_socket, selectors.EVENT_READ, id)
+        self.dead_selector.register(peer_socket, selectors.EVENT_READ, id)
         print(f"Accepted client on dead socket for ID {id}")
         self.num_dead = self.num_dead + 1
         
