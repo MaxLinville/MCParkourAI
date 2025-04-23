@@ -7,7 +7,7 @@ from mc_interface.minekour.neural_net import ControlNeuralNetwork
 # global variables
 # Global variables - use neural network to determine gene size
 radial_distance = 6
-hidden_layer_sizes = [64, 32]
+hidden_layer_sizes = [256, 128]
 gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distance)
 
 class Agent:

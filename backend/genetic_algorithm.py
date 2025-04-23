@@ -70,7 +70,7 @@ def evaluate_fitness(agents: list[Agent]) -> None:
         # Create neural network from agent's genes
         nn = ControlNeuralNetwork.from_genes(
             agent.get_genes(), 
-            hidden_layer_sizes=[64, 32], 
+            hidden_layer_sizes=[256, 128], 
             radial_distance=6
         )
         

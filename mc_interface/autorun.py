@@ -110,7 +110,7 @@ def stopNet():
     pass
 
 # parameters
-hidden_layer_sizes = [64, 32]
+hidden_layer_sizes = [256, 128]
 radial_distance = 6
 output_size = 8
 gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distance)
