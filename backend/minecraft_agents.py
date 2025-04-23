@@ -235,6 +235,8 @@ class networkCommander:
         
         for selectable, _ in self.dead_selector.select(0):
             id = selectable.data
+            socket = selectable.fileobj
+            socket.recv(networkCommander.BUFFER_SIZE) #drop dont care
             dead_ids.append(id)
             
         return dead_ids
