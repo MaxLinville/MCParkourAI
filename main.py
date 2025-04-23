@@ -4,15 +4,16 @@ import numpy as np
 import time
 from typing import List, Dict, Any, Optional
 from pathlib import Path
+from threading import Thread
 
 # Import our modules
 from mc_interface.minekour.neural_net import ControlNeuralNetwork
 from backend.genetic_algorithm import generate_population, evolve_population, evaluate_fitness
 from backend.agent import Agent
-from backend.minecraft_agents import networkCommander
+from backend.minecraft_agents import networkCommander, start_agents
 
 # Configuration
-NUM_AGENTS = 2
+NUM_AGENTS = 40
 NUM_GENERATIONS = 5
 SAVE_EVERY = 1  # Save genes every N generations
 GENES_FILE = "backend/weights.json"
@@ -20,7 +21,7 @@ HIDDEN_LAYER_SIZES = [64, 32]
 RADIAL_DISTANCE = 6
 MUTATION_RATE = 0.2
 MUTATION_STRENGTH = 0.5
-BATCH_SIZE = 1  # Number of agents to evaluate in parallel
+BATCH_SIZE = 8  # Number of agents to evaluate in parallel
 
 def load_genes_from_file(file_path: str) -> Dict[str, List[float]]:
     """
@@ -130,24 +131,22 @@ def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommande
             
         # Wait for all agents in the batch to complete
         completed_agents: set = set()
-        
         # Continue until all agents in this batch have completed or timed out
         while len(completed_agents) < batch_size:
             dead_agents = commander.getDead()
-
             # Check each active client in the batch
             for dead_agent in dead_agents:
-                
                 # Skip already completed agents
                 if dead_agent in completed_agents:
                     continue              
 
                 fitness = commander.get(dead_agent)
-                
+                commander.reset(dead_agent)
+
                 # Check if we got a valid fitness value
                 if fitness is not None and fitness != -1:
                     # Store fitness in the correct agent
-                    agent_idx = batch_start + i
+                    agent_idx = batch_start + dead_agent
                     agents[agent_idx].set_fitness(fitness)
                     
                     # Mark as completed
@@ -156,6 +155,7 @@ def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommande
             
             # Short delay before checking again
             time.sleep(1)
+        print(f"Batch {batch_start // BATCH_SIZE + 1} completed. All agents evaluated.\n")
 
 def main() -> None:
     # Initialize paths
@@ -163,6 +163,7 @@ def main() -> None:
     
     # Load existing genes if available
     genes_dict = load_genes_from_file(genes_path)
+    # genes_dict = {}
     
     # Create population
     population = create_population(genes_dict, NUM_AGENTS)
@@ -172,7 +173,10 @@ def main() -> None:
     
     # Wait for Minecraft clients to connect
     print(f"Waiting for {BATCH_SIZE} Minecraft clients to connect...")
-    commander.wait_for_clients()
+    client_wait_thread = Thread(target=commander.wait_for_clients, args=())
+    client_wait_thread.start()
+    start_agents([_+1 for _ in range(BATCH_SIZE)], "/mnt/c/Users/Max Linville/AppData/Local/Programs/PrismLauncher/prismlauncher.exe")
+    client_wait_thread.join()
     print("All clients connected!")
     
     # Generation loop
@@ -186,6 +190,7 @@ def main() -> None:
         population.sort(key=lambda agent: agent.get_fitness(), reverse=True)
         print(f"Best fitness: {population[0].get_fitness()}")
         print(f"Average fitness: {sum(agent.get_fitness() for agent in population) / len(population)}")
+        print(f"Top 2 agents: {[agent.get_fitness() for agent in population[:2]]}")
         
         # Save genes periodically
         if (generation + 1) % SAVE_EVERY == 0 or generation == NUM_GENERATIONS - 1:
