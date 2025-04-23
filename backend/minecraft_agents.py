@@ -32,7 +32,6 @@ class networkCommander:
     DEFAULT_DEAD_PORT = 25568
     CONTROL_SOCKET_FAMILY = socket.AF_INET #IPV4
     CONTROL_SOCKET_TYPE = socket.SOCK_STREAM #TCP
-
     BUFFER_SIZE = 2**12
     ENCODING = "UTF-8"
     
@@ -64,6 +63,7 @@ class networkCommander:
             self.dead_socket.listen()
             
             self.dead_selector = selectors.DefaultSelector()
+            self.num_dead = 0
             
             # add to selector for multiplex
             self.selector = selectors.DefaultSelector()
@@ -78,7 +78,7 @@ class networkCommander:
         Waits for numClient number of clients to connect and adds them to the socket, clients are assigned numerical IDs based on join order
         This function will block until all clients connect
         """        
-        while len(self.clients) < self.num_clients:
+        while len(self.clients) + self.num_dead < self.num_clients * 2:
             for selectable, _ in self.selector.select():
                 call = selectable.data
                 call(selectable.fileobj)
@@ -98,6 +98,7 @@ class networkCommander:
         id = int(peer_socket.recv(networkCommander.BUFFER_SIZE).decode(networkCommander.ENCODING))
         self.dead_selector.register(self.server_socket, selectors.EVENT_READ, id)
         print(f"Accepted client on dead socket for ID {id}")
+        self.num_dead = self.num_dead + 1
         
     def get_client(self, n:int) -> socket:
         """
