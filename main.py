@@ -4,6 +4,7 @@ import numpy as np
 import time
 from typing import List, Dict, Any, Optional
 from pathlib import Path
+from threading import Thread
 
 # Import our modules
 from mc_interface.minekour.neural_net import ControlNeuralNetwork
@@ -12,7 +13,7 @@ from backend.agent import Agent
 from backend.minecraft_agents import networkCommander, start_agents
 
 # Configuration
-NUM_AGENTS = 5
+NUM_AGENTS = 40
 NUM_GENERATIONS = 5
 SAVE_EVERY = 1  # Save genes every N generations
 GENES_FILE = "backend/weights.json"
@@ -20,7 +21,7 @@ HIDDEN_LAYER_SIZES = [64, 32]
 RADIAL_DISTANCE = 6
 MUTATION_RATE = 0.2
 MUTATION_STRENGTH = 0.5
-BATCH_SIZE = 1  # Number of agents to evaluate in parallel
+BATCH_SIZE = 8  # Number of agents to evaluate in parallel
 
 def load_genes_from_file(file_path: str) -> Dict[str, List[float]]:
     """
@@ -145,7 +146,7 @@ def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommande
                 # Check if we got a valid fitness value
                 if fitness is not None and fitness != -1:
                     # Store fitness in the correct agent
-                    agent_idx = batch_start + i
+                    agent_idx = batch_start + dead_agent
                     agents[agent_idx].set_fitness(fitness)
                     
                     # Mark as completed
@@ -161,8 +162,8 @@ def main() -> None:
     genes_path = Path(GENES_FILE)
     
     # Load existing genes if available
-    # genes_dict = load_genes_from_file(genes_path)
-    genes_dict = {}
+    genes_dict = load_genes_from_file(genes_path)
+    # genes_dict = {}
     
     # Create population
     population = create_population(genes_dict, NUM_AGENTS)
@@ -172,7 +173,10 @@ def main() -> None:
     
     # Wait for Minecraft clients to connect
     print(f"Waiting for {BATCH_SIZE} Minecraft clients to connect...")
-    commander.wait_for_clients()
+    client_wait_thread = Thread(target=commander.wait_for_clients, args=())
+    client_wait_thread.start()
+    start_agents([_+1 for _ in range(BATCH_SIZE)], "/mnt/c/Users/Max Linville/AppData/Local/Programs/PrismLauncher/prismlauncher.exe")
+    client_wait_thread.join()
     print("All clients connected!")
     
     # Generation loop
