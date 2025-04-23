@@ -39,7 +39,7 @@ def modifyNet(recieved_genes):
         hidden_layer_sizes=hidden_layer_sizes,
         radial_distance=radial_distance)
 
-def checkDead() -> bool:
+def checkDead() -> (bool, float):
     """
     Checks if the player is in the dead zone and returns true if so
     """
@@ -63,7 +63,7 @@ def checkDead() -> bool:
         echo(f"at_death: {at_death}, death_time: {death_time}")
         echo(f"last_run_time: {last_run_time}, current time: {current_time}")
         last_run_time = -1
-    return is_dead
+    return (is_dead, current_time - last_run_time)
 
 def runNet():
     """

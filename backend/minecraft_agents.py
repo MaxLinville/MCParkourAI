@@ -227,7 +227,7 @@ class networkCommander:
         if response != "OK":
             print(f"WARNING:client {n} responded with non-ok on KILL with response: {response}")
             
-    def getDead(self) -> list[int]:
+    def getDead(self) -> list[(int, float)]:
         """
         gets a list of dead IDs
         """
@@ -236,7 +236,7 @@ class networkCommander:
         for selectable, _ in self.dead_selector.select(0):
             id = selectable.data
             socket = selectable.fileobj
-            socket.recv(networkCommander.BUFFER_SIZE) #drop dont care
-            dead_ids.append(id)
+            value = socket.recv(networkCommander.BUFFER_SIZE).decode(self.ENCODING)
+            dead_ids.append((id, float(value)))
             
         return dead_ids
