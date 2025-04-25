@@ -54,8 +54,12 @@ def crossover(parent1: Agent, parent2: Agent) -> Agent:
     Returns:
         Agent: New agent with genes from parents
     """
-    # randomly select which parent the gene comes from
-    new_genes = [parent1.genes[i] if np.random.uniform() < 0.5 else parent2.genes[i] for i in range(gene_size)]
+    # Create a random mask of same shape as genes
+    mask = np.random.random(parent1.genes.shape) < 0.5
+    
+    # Vectorized operation: use mask to select genes from either parent
+    new_genes = np.where(mask, parent1.genes, parent2.genes)
+    
     return Agent(new_genes)
 
 def evaluate_fitness(agents: list[Agent]) -> None:
@@ -102,13 +106,18 @@ def evolve_population(population: list[Agent], num_agents: int = 100, mutation_r
         print("Warning: Selection produced too few parents, using all non-elite agents")
         trimmed_population = population[elite_count:]  # Use all non-elite as parents
     print(f"Number of agents in trimmed population: {len(trimmed_population)}")
+    
+    # Create new population with vectorized operations
     new_population: list[Agent] = []
     for _ in range(num_agents):
         parent1: Agent = choice(trimmed_population)
         parent2: Agent = choice(trimmed_population)
         new_population.append(crossover(parent1, parent2))
+    
+    # Apply mutations
     for agent in new_population:
         agent.mutate(mutation_rate, mutation_strength)
-    evaluate_fitness(new_population)
+    
+    # Combine elite agents with new population
     new_population = elite_agents + new_population[:num_agents - elite_count]
     return new_population

@@ -14,16 +14,16 @@ from backend.agent import Agent
 from backend.minecraft_agents import networkCommander, start_agents
 
 # Configuration
-NUM_AGENTS = 128
+NUM_AGENTS = 96
 NUM_GENERATIONS = 5
 SAVE_EVERY = 1  # Save genes every N generations
-GENES_FILE = "backend/weights.json"
+GENES_FILE = "backend/weights.npz"
 HIDDEN_LAYER_SIZES = [256, 128]
 RADIAL_DISTANCE = 6
 MUTATION_RATE = 0.2
 MUTATION_STRENGTH = 0.5
 #TODO: reduce strength and rate as generation increases ?
-BATCH_SIZE = 16  # Number of agents to evaluate in parallel
+BATCH_SIZE = 24  # Number of agents to evaluate in parallel
 METRICS_FILE = "fitness_metrics.csv"  # New file for tracking fitness metrics
 
 def save_metrics_to_csv(generation: int, best_fitness: float, avg_fitness: float, file_path: str) -> None:
@@ -72,9 +72,11 @@ def load_genes_from_file(file_path: str) -> Dict[str, List[float]]:
         return {}
         
     try:
-        with open(file_path, 'r') as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError) as e:
+        # Load the compressed numpy file
+        with np.load(file_path) as data:
+            # Convert to dictionary with numpy arrays
+            return {name: data[name] for name in data.files}
+    except (IOError, ValueError) as e:
         print(f"Error loading genes file: {e}")
         return {}
         
@@ -86,11 +88,12 @@ def save_genes_to_file(agents: List[Agent], file_path: str) -> None:
         agents (List[Agent]): List of agents
         file_path (str): Path to save the JSON file
     """
-    genes_dict = {f"Agent{i}": agent.get_genes() for i, agent in enumerate(agents)}
-    
     try:
-        with open(file_path, 'w') as f:
-            json.dump(genes_dict, f, indent=2)
+        # Create dict of agent_id -> numpy array
+        genes_dict = {f"Agent{i}": np.array(agent.get_genes(), dtype=np.float32) for i, agent in enumerate(agents)}
+        
+        # Save as compressed npz file
+        np.savez_compressed(file_path, **genes_dict)
         print(f"Saved genes to {file_path}")
     except IOError as e:
         print(f"Error saving genes file: {e}")
@@ -133,6 +136,17 @@ def genes_to_bytestring(genes: List[float]) -> bytes:
     # Convert genes to a string representation and encode it
     genes_str = ";".join([str(gene) for gene in genes])
     return genes_str.encode('utf-8')
+
+# Adaptive mutation parameters
+def get_adaptive_mutation_params(generation, max_generations):
+    """Returns appropriate mutation rate and strength based on generation progress"""
+    progress = generation / max_generations
+    
+    # Linearly decrease from initial to final values
+    rate = MUTATION_RATE * (1 - 0.8 * progress)  # Decreases from 0.2 to 0.04
+    strength = MUTATION_STRENGTH * (1 - 0.9 * progress)  # Decreases from 0.5 to 0.05
+    
+    return rate, strength
 
 def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommander) -> None:
     """
@@ -255,13 +269,17 @@ def main() -> None:
         if (generation + 1) % SAVE_EVERY == 0 or generation == NUM_GENERATIONS - 1:
             save_genes_to_file(population, genes_path)
         
+        # Adaptive mutation parameters
+        mutation_rate, mutation_strength = get_adaptive_mutation_params(generation, NUM_GENERATIONS)
+        print(f"Adaptive mutation rate: {mutation_rate}, strength: {mutation_strength}")
+
         # Create next generation (except for the last iteration)
         if generation < NUM_GENERATIONS - 1:
             population = evolve_population(
                 population, 
                 num_agents=NUM_AGENTS, 
-                mutation_rate=MUTATION_RATE, 
-                mutation_strength=MUTATION_STRENGTH
+                mutation_rate=mutation_rate, 
+                mutation_strength=mutation_strength
             )
     
     # Final save

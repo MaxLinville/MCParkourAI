@@ -3,6 +3,7 @@ Agent class to track genes and fitness of each agent as an object
 """
 import numpy as np
 from mc_interface.minekour.neural_net import ControlNeuralNetwork
+from typing import List
 
 # global variables
 # Global variables - use neural network to determine gene size
@@ -11,14 +12,20 @@ hidden_layer_sizes = [256, 128]
 gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distance)
 
 class Agent:
-    def __init__(self, genes: list[float]):
+    def __init__(self, genes: np.ndarray | List[float]):
         """
         Initializes an agent with genes and fitness
 
         Args:
             genes (list[float]): List of genes for the agent
         """
-        self.genes: list = genes if genes else print("No genes provided, using random genes")
+        if genes is None:
+            print("No genes provided, using random genes")
+            self.genes = np.random.normal(0, 1, gene_size).astype(np.float32)
+        else:
+            # Convert to numpy array if it's not already
+            self.genes = np.asarray(genes, dtype=np.float32)
+
         self.fitness: float = 0.0
 
     def __str__(self) -> str:
@@ -80,10 +87,14 @@ class Agent:
             mutation_rate (float, optional): Ratio of genes to mutate. Defaults to 0.1.
             mutation_strength (float, optional): Scaling factor for mutation amount for modified genes. Defaults to 1.
         """        
-        for gene_index, gene in enumerate(self.genes):
-            if np.random.uniform() < mutation_rate:
-                mutation_amount: float = np.random.normal(0, mutation_strength)
-                self.genes[gene_index] += mutation_amount
+        # Generate mutation mask where True means the gene will be mutated
+        mutation_mask = np.random.random(self.genes.shape) < mutation_rate
+        
+        # Generate mutation values for all genes
+        mutation_values = np.random.normal(0, mutation_strength, self.genes.shape)
+        
+        # Apply mutations only where the mask is True
+        self.genes += mutation_values * mutation_mask
         
 
 
