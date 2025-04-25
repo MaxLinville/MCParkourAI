@@ -78,8 +78,15 @@ class ControlNeuralNetwork:
         
         # 2 continuous outputs (using tanh to get values in [-1, 1])
         for i in range(6, 8):
-            results.append(self._tanh(output_layer[i]))
-        
+            # Apply the periodic transformation: mod(-6arctan(x/10000),pi)-pi/2
+            x = output_layer[i]
+            arctanx = np.arctan(x / 10000)    # First apply arctan with scaling
+            scaled = -6 * arctanx             # Scale the arctan output
+            transformed = scaled % np.pi - np.pi/2  # Apply modulo and shift
+            # Scale to [-1, 1] range
+            compressed = transformed * (2/np.pi)
+            results.append(compressed)
+        print(f"Yaw: {output_layer[6]}, Pitch: {output_layer[7]}, movement: {output_layer[5]}")
         return results
     
     @staticmethod

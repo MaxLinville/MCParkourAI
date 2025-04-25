@@ -14,7 +14,7 @@ from backend.agent import Agent
 from backend.minecraft_agents import networkCommander, start_agents
 
 # Configuration
-NUM_AGENTS = 96
+NUM_AGENTS = 4
 NUM_GENERATIONS = 5
 SAVE_EVERY = 1  # Save genes every N generations
 GENES_FILE = "backend/weights.npz"
@@ -23,7 +23,7 @@ RADIAL_DISTANCE = 6
 MUTATION_RATE = 0.2
 MUTATION_STRENGTH = 0.5
 #TODO: reduce strength and rate as generation increases ?
-BATCH_SIZE = 24  # Number of agents to evaluate in parallel
+BATCH_SIZE = 1  # Number of agents to evaluate in parallel
 METRICS_FILE = "fitness_metrics.csv"  # New file for tracking fitness metrics
 
 def save_metrics_to_csv(generation: int, best_fitness: float, avg_fitness: float, file_path: str) -> None:
