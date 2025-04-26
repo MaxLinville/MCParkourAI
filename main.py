@@ -15,7 +15,7 @@ from backend.agent import Agent
 from backend.minecraft_agents import networkCommander, start_agents
 
 # Configuration
-STARTING_GENERATIONS = 0
+STARTING_GENERATIONS = 34
 NUM_AGENTS = 48
 NUM_GENERATIONS = 25
 SAVE_EVERY = 1  # Save genes every N generations
@@ -297,9 +297,11 @@ def main() -> None:
         print(f"Fitness metrics saved to {metrics_path}")
     except KeyboardInterrupt:
         print("Manual exit, closing minecraft clients...")
+    finally:
         subprocess.run([
             "powershell.exe", "-ExecutionPolicy", "Bypass", "-File", 
             "C:\\Users\\Max Linville\\Desktop\\killminecraft.ps1"
-        ])        
+        ])    
+
 if __name__ == "__main__":
     main()
