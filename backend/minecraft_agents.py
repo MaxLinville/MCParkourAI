@@ -131,7 +131,7 @@ class networkCommander:
         client.send("GET".encode(self.ENCODING))
         
         #wait for OK
-        response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
+        response = client.recv(2).decode(self.ENCODING)
         if response != "OK":
             print(f"WARNING:client {n} responded with non-ok on GET with response: {response}")
         
