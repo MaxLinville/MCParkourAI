@@ -20,7 +20,7 @@ def generate_population(num_agents: int = 100) -> list[Agent]:
     agents = [Agent([np.random.normal(0, 1) for _ in range(gene_size)]) for _ in range(num_agents)]
     return agents
 
-def select_population(agents: list[Agent], survivor_ratio: float = 0.2) -> list[Agent]:
+def select_population(agents: list[Agent], survivor_ratio: float = 0.2, tournament_size: int = 3) -> list[Agent]:
     """
     Selects a percentage of the population to survive based on their fitness
 
@@ -31,16 +31,18 @@ def select_population(agents: list[Agent], survivor_ratio: float = 0.2) -> list[
     Returns:
         list[Agent]: List of agents that survived
     """
-    agent_weights = [agent.get_fitness() for agent in agents]
-    min_weight = min(agent_weights)
-    agent_weights_shifted = [weight - min_weight for weight in agent_weights]
-    total = sum(agent_weights_shifted)
-    if total == 0:
-        # All fitness are equal (likely zero), select randomly
-        survivors = choices(agents, k=int(len(agents) * survivor_ratio))
-    else:
-        normalized_weights = [weight / total for weight in agent_weights_shifted]
-        survivors = choices(agents, weights=normalized_weights, k=int(len(agents) * survivor_ratio))
+    num_survivors = int(len(agents) * survivor_ratio)
+    survivors = []
+    
+    # Run tournaments until we have enough survivors
+    for _ in range(num_survivors):
+        # Select tournament_size random agents
+        tournament_agents = np.random.choice(agents, tournament_size, replace=False)
+        
+        # Find the agent with highest fitness in the tournament
+        winner = max(tournament_agents, key=lambda agent: agent.get_fitness())
+        survivors.append(winner)
+    
     return survivors
 
 def crossover(parent1: Agent, parent2: Agent) -> Agent:
@@ -85,7 +87,7 @@ def evaluate_fitness(agents: list[Agent]) -> None:
         SEND  STUFF TO NETWORK TO BE EXEUCTED AND GET BACK FITNESS RESULTS BEFORE SETTING
         '''
 
-def evolve_population(population: list[Agent], num_agents: int = 100, mutation_rate: float = 0.2, mutation_strength: float = 0.2, elite_count: int = 1) -> list:
+def evolve_population(population: list[Agent], num_agents: int = 100, mutation_rate: float = 0.2, mutation_strength: float = 0.2, elite_count: int = 3) -> list:
     """
     Evolves the population by selecting, crossing over, and mutating agents
 

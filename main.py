@@ -5,6 +5,7 @@ import time
 import csv
 from typing import List, Dict, Any, Optional
 from pathlib import Path
+import subprocess
 from threading import Thread
 
 # Import our modules
@@ -14,17 +15,18 @@ from backend.agent import Agent
 from backend.minecraft_agents import networkCommander, start_agents
 
 # Configuration
-NUM_AGENTS = 4
-NUM_GENERATIONS = 5
+STARTING_GENERATIONS = 0
+NUM_AGENTS = 48
+NUM_GENERATIONS = 25
 SAVE_EVERY = 1  # Save genes every N generations
-GENES_FILE = "backend/weights.npz"
 HIDDEN_LAYER_SIZES = [256, 128]
 RADIAL_DISTANCE = 6
-MUTATION_RATE = 0.2
-MUTATION_STRENGTH = 0.5
-#TODO: reduce strength and rate as generation increases ?
-BATCH_SIZE = 1  # Number of agents to evaluate in parallel
+MUTATION_RATE = 0.01
+MUTATION_STRENGTH = 0.1
+BATCH_SIZE = 24  # Number of agents to evaluate in parallel
 METRICS_FILE = "fitness_metrics.csv"  # New file for tracking fitness metrics
+GENES_FILE = "backend/weights.npz"
+PYTHON_PATH = "/mnt/c/Users/Max Linville/AppData/Local/Programs/Python/Python313/python.exe"
 
 def save_metrics_to_csv(generation: int, best_fitness: float, avg_fitness: float, file_path: str) -> None:
     """
@@ -52,6 +54,7 @@ def save_metrics_to_csv(generation: int, best_fitness: float, avg_fitness: float
             writer.writerow(["# Hidden Layers", HIDDEN_LAYER_SIZES])
             writer.writerow(["# Radial Distance", RADIAL_DISTANCE])
             writer.writerow(["# Batch Size", BATCH_SIZE])
+            writer.writerow(["# Total Weights: ", ControlNeuralNetwork.get_gene_size(HIDDEN_LAYER_SIZES, RADIAL_DISTANCE)])
             writer.writerow([])  # Empty row for separation
             writer.writerow(["Generation", "Best Fitness", "Average Fitness"])
             
@@ -143,8 +146,8 @@ def get_adaptive_mutation_params(generation, max_generations):
     progress = generation / max_generations
     
     # Linearly decrease from initial to final values
-    rate = MUTATION_RATE * (1 - 0.8 * progress)  # Decreases from 0.2 to 0.04
-    strength = MUTATION_STRENGTH * (1 - 0.9 * progress)  # Decreases from 0.5 to 0.05
+    rate = MUTATION_RATE * np.exp(-0.008*generation) # Decreases from 1% to 0.2% after 200 generations
+    strength = MUTATION_STRENGTH * np.exp(-0.008*generation) # Decreases from 0.1 to 0.02 after 200 generations
     
     return rate, strength
 
@@ -206,7 +209,10 @@ def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommande
                     continue              
 
                 print(f"Agent {batch_start + dead_agent} is dead. Time taken: {time_taken}")
-                fitness = commander.get(dead_agent)/(time_taken+5)
+                fitness = commander.get(dead_agent)
+                # Add time bonus if it is fast (this should be useful only when reaching end states)
+                # if fitness > 3:
+                #     fitness += 0.2*(10-time_taken) # speed bonus that applies after first 2 checkpoints
                 commander.reset(dead_agent)
 
                 # Check if we got a valid fitness value
@@ -245,47 +251,55 @@ def main() -> None:
     start_agents([_+1 for _ in range(BATCH_SIZE)], "/mnt/c/Users/Max Linville/AppData/Local/Programs/PrismLauncher/prismlauncher.exe")
     client_wait_thread.join()
     print("All clients connected!")
-    
+    end_generation = STARTING_GENERATIONS + NUM_GENERATIONS
     # Generation loop
-    for generation in range(NUM_GENERATIONS):
-        print(f"\nGeneration {generation+1}/{NUM_GENERATIONS}")
-        
-        # Evaluate agents in Minecraft
-        evaluate_agents_in_minecraft(population, commander)
-        
-        # Display results
-        population.sort(key=lambda agent: agent.get_fitness(), reverse=True)
-        best_fitness = population[0].get_fitness()
-        avg_fitness = sum(agent.get_fitness() for agent in population) / len(population)
-        
-        print(f"Best fitness: {best_fitness}")
-        print(f"Average fitness: {avg_fitness}")
-        print(f"Top 5 agents: {[agent.get_fitness() for agent in population[:5]]}")
-        
-        # Save metrics to CSV
-        save_metrics_to_csv(generation, best_fitness, avg_fitness, metrics_path)
-        
-        # Save genes periodically
-        if (generation + 1) % SAVE_EVERY == 0 or generation == NUM_GENERATIONS - 1:
-            save_genes_to_file(population, genes_path)
-        
-        # Adaptive mutation parameters
-        mutation_rate, mutation_strength = get_adaptive_mutation_params(generation, NUM_GENERATIONS)
-        print(f"Adaptive mutation rate: {mutation_rate}, strength: {mutation_strength}")
+    subprocess.run([PYTHON_PATH, "C:/Users/Max Linville/Desktop/tile_minecraft.py"]) # tiles minecraft windows
+    try:
+        for generation in range(STARTING_GENERATIONS,end_generation):
+            print(f"\nGeneration {generation+1}/{end_generation}")
+            
+            # Evaluate agents in Minecraft
+            evaluate_agents_in_minecraft(population, commander)
+            
+            # Display results
+            population.sort(key=lambda agent: agent.get_fitness(), reverse=True)
+            best_fitness = population[0].get_fitness()
+            avg_fitness = sum(agent.get_fitness() for agent in population) / len(population)
+            
+            print(f"Best fitness: {best_fitness}")
+            print(f"Average fitness: {avg_fitness}")
+            print(f"Top 5 agents: {[agent.get_fitness() for agent in population[:5]]}")
+            
+            # Save metrics to CSV
+            save_metrics_to_csv(generation, best_fitness, avg_fitness, metrics_path)
+            
+            # Save genes periodically
+            if (generation + 1) % SAVE_EVERY == 0 or generation == NUM_GENERATIONS - 1:
+                save_genes_to_file(population, genes_path)
+            
+            # Adaptive mutation parameters
+            mutation_rate, mutation_strength = get_adaptive_mutation_params(generation, NUM_GENERATIONS)
+            print(f"Adaptive mutation rate: {mutation_rate}, strength: {mutation_strength}")
 
-        # Create next generation (except for the last iteration)
-        if generation < NUM_GENERATIONS - 1:
-            population = evolve_population(
-                population, 
-                num_agents=NUM_AGENTS, 
-                mutation_rate=mutation_rate, 
-                mutation_strength=mutation_strength
-            )
-    
-    # Final save
-    save_genes_to_file(population, genes_path)
-    print("Genetic algorithm completed!")
-    print(f"Fitness metrics saved to {metrics_path}")
-
+            # Create next generation (except for the last iteration)
+            if generation < end_generation - 1:
+                print(f"Evolving population for generation {generation}...")
+                population = evolve_population(
+                    population, 
+                    num_agents=NUM_AGENTS, 
+                    mutation_rate=mutation_rate, 
+                    mutation_strength=mutation_strength
+                )
+        
+        # Final save
+        save_genes_to_file(population, genes_path)
+        print("Genetic algorithm completed!")
+        print(f"Fitness metrics saved to {metrics_path}")
+    except KeyboardInterrupt:
+        print("Manual exit, closing minecraft clients...")
+        subprocess.run([
+            "powershell.exe", "-ExecutionPolicy", "Bypass", "-File", 
+            "C:\\Users\\Max Linville\\Desktop\\killminecraft.ps1"
+        ])        
 if __name__ == "__main__":
     main()
