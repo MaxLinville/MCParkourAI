@@ -15,7 +15,7 @@ from backend.agent import Agent
 from backend.minecraft_agents import networkCommander, start_agents
 from save_figure import save_figure
 # Configuration
-STARTING_GENERATIONS = 125 # need to replace this with getting most recent gen from file
+STARTING_GENERATIONS = 150 # need to replace this with getting most recent gen from file
 NUM_AGENTS = 48
 NUM_GENERATIONS = 25
 SAVE_EVERY = 1  # Save genes every N generations
