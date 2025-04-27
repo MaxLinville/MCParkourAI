@@ -77,7 +77,7 @@ def evaluate_fitness(agents: list[Agent]) -> None:
         nn = ControlNeuralNetwork.from_genes(
             agent.get_genes(), 
             hidden_layer_sizes=[256, 128], 
-            radial_distance=6
+            radial_distance=5
         )
         
         # Here you would evaluate the agent's performance in the environment

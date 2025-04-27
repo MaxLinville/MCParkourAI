@@ -13,19 +13,19 @@ from mc_interface.minekour.neural_net import ControlNeuralNetwork
 from backend.genetic_algorithm import generate_population, evolve_population, evaluate_fitness
 from backend.agent import Agent
 from backend.minecraft_agents import networkCommander, start_agents
-
+from save_figure import save_figure
 # Configuration
-STARTING_GENERATIONS = 34
+STARTING_GENERATIONS = 125 # need to replace this with getting most recent gen from file
 NUM_AGENTS = 48
 NUM_GENERATIONS = 25
 SAVE_EVERY = 1  # Save genes every N generations
 HIDDEN_LAYER_SIZES = [256, 128]
-RADIAL_DISTANCE = 6
+RADIAL_DISTANCE = 5
 MUTATION_RATE = 0.01
 MUTATION_STRENGTH = 0.1
-BATCH_SIZE = 24  # Number of agents to evaluate in parallel
-METRICS_FILE = "fitness_metrics.csv"  # New file for tracking fitness metrics
-GENES_FILE = "backend/weights.npz"
+BATCH_SIZE = 16  # Number of agents to evaluate in parallel
+METRICS_FILE = "fitness_metrics_5_block.csv"  # New file for tracking fitness metrics
+GENES_FILE = "backend/weights_5_block.npz"
 PYTHON_PATH = "/mnt/c/Users/Max Linville/AppData/Local/Programs/Python/Python313/python.exe"
 
 def save_metrics_to_csv(generation: int, best_fitness: float, avg_fitness: float, file_path: str) -> None:
@@ -79,7 +79,7 @@ def load_genes_from_file(file_path: str) -> Dict[str, List[float]]:
         with np.load(file_path) as data:
             # Convert to dictionary with numpy arrays
             return {name: data[name] for name in data.files}
-    except (IOError, ValueError) as e:
+    except (IOError, ValueError, EOFError) as e:
         print(f"Error loading genes file: {e}")
         return {}
         
@@ -254,6 +254,8 @@ def main() -> None:
     end_generation = STARTING_GENERATIONS + NUM_GENERATIONS
     # Generation loop
     subprocess.run([PYTHON_PATH, "C:/Users/Max Linville/Desktop/tile_minecraft.py"]) # tiles minecraft windows
+    # open observation window
+    subprocess.run(["/mnt/c/Users/Max Linville/AppData/Local/Programs/PrismLauncher/prismlauncher.exe", "--launch", f"1.21.4(2)", "--profile", "MoopleMax"])
     try:
         for generation in range(STARTING_GENERATIONS,end_generation):
             print(f"\nGeneration {generation+1}/{end_generation}")
@@ -290,6 +292,7 @@ def main() -> None:
                     mutation_rate=mutation_rate, 
                     mutation_strength=mutation_strength
                 )
+            save_figure()
         
         # Final save
         save_genes_to_file(population, genes_path)
@@ -298,10 +301,7 @@ def main() -> None:
     except KeyboardInterrupt:
         print("Manual exit, closing minecraft clients...")
     finally:
-        subprocess.run([
-            "powershell.exe", "-ExecutionPolicy", "Bypass", "-File", 
-            "C:\\Users\\Max Linville\\Desktop\\killminecraft.ps1"
-        ])    
+        subprocess.run(["powershell.exe", "-ExecutionPolicy", "Bypass", "-File", "C:\\Users\\Max Linville\\Desktop\\killminecraft.ps1"])    
 
 if __name__ == "__main__":
     main()

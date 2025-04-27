@@ -19,7 +19,8 @@ def start_agents(agents: list[int], location: str):
         Minescript[n]
     
     """
-    for n in agents:
+    for i, n in enumerate(agents):
+        print(f"starting_agent {i}")
         subprocess.run([location, "--launch", f"MinescriptClient{n}", "--profile", f"Minescript{n}"])
 
 # start_agents([_+1 for _ in range(32)], "/mnt/c/Users/Max Linville/AppData/Local/Programs/PrismLauncher/prismlauncher.exe")

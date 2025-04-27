@@ -83,8 +83,7 @@ def runNet():
     yaw, pitch = PlayerManager.getRotation()
 
     results = net.run_nn(block_inputs=inputs, 
-                         yaw=yaw, 
-                         pitch=pitch)
+                         yaw=yaw)
     
     # convert to playerMotion object
     move = Motion()
@@ -98,7 +97,7 @@ def runNet():
     move.movement_speed = results[5]
     
     move.yaw = 180 * results[6]
-    move.pitch = 90 * results[7]
+    move.pitch = 0
     
     # move player
     PlayerManager.movePlayer(move)
@@ -111,13 +110,13 @@ def stopNet():
 
 # parameters
 hidden_layer_sizes = [256, 128]
-radial_distance = 6
-output_size = 8
+radial_distance = 5
+output_size = 7
 gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distance)
 # Generate random weights (genes)
-input_dim = (2*radial_distance+1)**3 + 2
+input_dim = (2*radial_distance+1)**3 + 1
 scaling_factor = 1/np.sqrt(input_dim)
-timeout = 10 #seconds before giving up
+timeout = 20 #seconds before giving up
 
 # run starts here
 init()
