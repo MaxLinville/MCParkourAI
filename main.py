@@ -18,7 +18,7 @@ from backend.minecraft_agents import networkCommander, start_agents
 from save_figure import save_figure
 from autofocus_windows import autofocus_minecraft
 # Configuration
-STARTING_GENERATIONS = 100  # need to replace this with getting most recent gen from file
+STARTING_GENERATIONS = 112  # need to replace this with getting most recent gen from file
 NUM_AGENTS = 48
 NUM_GENERATIONS = 100
 SAVE_EVERY = 1  # Save genes every N generations

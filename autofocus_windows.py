@@ -122,7 +122,7 @@ def autofocus_minecraft():
                 print(f"Failed to interact with window: {title}")
         
         # Wait a moment before moving to the next window
-        time.sleep(0.5)
+        time.sleep(0.1)
     
     print("All Minecraft windows processed.")
 
