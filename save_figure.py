@@ -4,10 +4,10 @@ import numpy as np
 import os
 from pathlib import Path
 
-def save_figure(file_name='fitness_metrics_updated_map'):
+def save_figure(file_name='updated_map'):
     # Check if file_name already includes the directory path
     if not file_name.startswith('fitness_metrics/'):
-        csv_path = f'fitness_metrics/{file_name}.csv'
+        csv_path = f'fitness_metrics/fitness_metrics_{file_name}.csv'
     else:
         csv_path = file_name
         if not csv_path.endswith('.csv'):
@@ -50,7 +50,7 @@ def save_figure(file_name='fitness_metrics_updated_map'):
     
     # Extract filename from the CSV path for use in the output filename
     input_filename = os.path.basename(csv_path)
-    output_filename = input_filename.replace('.csv', '.png')
+    output_filename = f'fitness_plot_{file_name}.png'
     output_path = os.path.join(plots_dir, output_filename)
     
     plt.tight_layout()
