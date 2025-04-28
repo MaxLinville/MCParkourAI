@@ -173,5 +173,5 @@ cython_debug/
 # virtual environments
 .venv*/
 
-weights*.*
-fitness_metrics*.csv
+weights*
+fitness_metrics*

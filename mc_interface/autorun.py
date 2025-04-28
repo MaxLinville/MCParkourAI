@@ -116,7 +116,7 @@ gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distan
 # Generate random weights (genes)
 input_dim = (2*radial_distance+1)**3 + 1
 scaling_factor = 1/np.sqrt(input_dim)
-timeout = 20 #seconds before giving up
+timeout = 30 #seconds before giving up
 
 # run starts here
 init()

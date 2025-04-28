@@ -7,6 +7,8 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 import subprocess
 from threading import Thread
+import glob
+import re
 
 # Import our modules
 from mc_interface.minekour.neural_net import ControlNeuralNetwork
@@ -14,18 +16,20 @@ from backend.genetic_algorithm import generate_population, evolve_population, ev
 from backend.agent import Agent
 from backend.minecraft_agents import networkCommander, start_agents
 from save_figure import save_figure
+from autofocus_windows import autofocus_minecraft
 # Configuration
-STARTING_GENERATIONS = 150 # need to replace this with getting most recent gen from file
+STARTING_GENERATIONS = 100  # need to replace this with getting most recent gen from file
 NUM_AGENTS = 48
-NUM_GENERATIONS = 25
+NUM_GENERATIONS = 100
 SAVE_EVERY = 1  # Save genes every N generations
 HIDDEN_LAYER_SIZES = [256, 128]
 RADIAL_DISTANCE = 5
 MUTATION_RATE = 0.01
 MUTATION_STRENGTH = 0.1
 BATCH_SIZE = 16  # Number of agents to evaluate in parallel
-METRICS_FILE = "fitness_metrics_5_block.csv"  # New file for tracking fitness metrics
-GENES_FILE = "backend/weights_5_block.npz"
+TEST_NAME = "updated_map"
+METRICS_FILE = f"fitness_metrics/fitness_metrics_{TEST_NAME}.csv"  # New file for tracking fitness metrics
+GENES_FILE = f"backend/weights_{TEST_NAME}"
 PYTHON_PATH = "/mnt/c/Users/Max Linville/AppData/Local/Programs/Python/Python313/python.exe"
 
 def save_metrics_to_csv(generation: int, best_fitness: float, avg_fitness: float, file_path: str) -> None:
@@ -63,41 +67,81 @@ def save_metrics_to_csv(generation: int, best_fitness: float, avg_fitness: float
 
 def load_genes_from_file(file_path: str) -> Dict[str, List[float]]:
     """
-    Load agent genes from a JSON file
+    Load agent genes from the most recent weight file in the weights folder
     
     Args:
-        file_path (str): Path to the JSON file
+        file_path (str): Path to the weights folder
         
     Returns:
         Dict[str, List[float]]: Dictionary mapping agent IDs to their genes
     """
-    if not os.path.exists(file_path):
+    # Create folder path from the file path
+    folder_path = Path(file_path).with_suffix('')
+    
+    if not folder_path.exists():
+        return {}
+    
+    # Find all weight files in the folder
+    weight_files = glob.glob(str(folder_path) + "/*.npz")
+    
+    if not weight_files:
         return {}
         
+    # Extract generation numbers and find the most recent
+    gen_numbers = []
+    for file in weight_files:
+        match = re.search(r'_(\d+)\.npz$', file)
+        if match:
+            gen_numbers.append(int(match.group(1)))
+        else:
+            # For files without generation suffix
+            gen_numbers.append(0)
+    
+    if not gen_numbers:
+        return {}
+        
+    # Get the most recent file
+    most_recent_idx = gen_numbers.index(max(gen_numbers))
+    most_recent_file = weight_files[most_recent_idx]
+    
+    print(f"Loading weights from {most_recent_file}")
+    
     try:
         # Load the compressed numpy file
-        with np.load(file_path) as data:
+        with np.load(most_recent_file) as data:
             # Convert to dictionary with numpy arrays
             return {name: data[name] for name in data.files}
     except (IOError, ValueError, EOFError) as e:
         print(f"Error loading genes file: {e}")
         return {}
         
-def save_genes_to_file(agents: List[Agent], file_path: str) -> None:
+def save_genes_to_file(agents: List[Agent], file_path: str, generation: int = None) -> None:
     """
-    Save agent genes to a JSON file
+    Save agent genes to a file in the weights folder
     
     Args:
         agents (List[Agent]): List of agents
-        file_path (str): Path to save the JSON file
+        file_path (str): Base path for weights
+        generation (int, optional): Current generation number for filename
     """
     try:
+        # Create folder path from the file path
+        folder_path = Path(file_path).with_suffix('')
+        folder_path.mkdir(exist_ok=True)
+        
         # Create dict of agent_id -> numpy array
         genes_dict = {f"Agent{i}": np.array(agent.get_genes(), dtype=np.float32) for i, agent in enumerate(agents)}
         
+        if generation is not None and generation % 10 == 0:
+            # Save with generation suffix for every 10th generation
+            save_path = folder_path / f"weights_{generation}.npz"
+        else:
+            # Save latest weights
+            save_path = folder_path / "weights_latest.npz"
+            
         # Save as compressed npz file
-        np.savez_compressed(file_path, **genes_dict)
-        print(f"Saved genes to {file_path}")
+        np.savez_compressed(save_path, **genes_dict)
+        print(f"Saved genes to {save_path}")
     except IOError as e:
         print(f"Error saving genes file: {e}")
 
@@ -254,8 +298,14 @@ def main() -> None:
     end_generation = STARTING_GENERATIONS + NUM_GENERATIONS
     # Generation loop
     subprocess.run([PYTHON_PATH, "C:/Users/Max Linville/Desktop/tile_minecraft.py"]) # tiles minecraft windows
+    #autofocus windows
+    time.sleep(5)
     # open observation window
     subprocess.run(["/mnt/c/Users/Max Linville/AppData/Local/Programs/PrismLauncher/prismlauncher.exe", "--launch", f"1.21.4(2)", "--profile", "MoopleMax"])
+    time.sleep(5)
+    autofocus_minecraft()
+
+
     try:
         for generation in range(STARTING_GENERATIONS,end_generation):
             print(f"\nGeneration {generation+1}/{end_generation}")
@@ -277,7 +327,7 @@ def main() -> None:
             
             # Save genes periodically
             if (generation + 1) % SAVE_EVERY == 0 or generation == NUM_GENERATIONS - 1:
-                save_genes_to_file(population, genes_path)
+                save_genes_to_file(population, genes_path, generation + 1)
             
             # Adaptive mutation parameters
             mutation_rate, mutation_strength = get_adaptive_mutation_params(generation, NUM_GENERATIONS)
@@ -295,7 +345,7 @@ def main() -> None:
             save_figure()
         
         # Final save
-        save_genes_to_file(population, genes_path)
+        save_genes_to_file(population, genes_path, end_generation)
         print("Genetic algorithm completed!")
         print(f"Fitness metrics saved to {metrics_path}")
     except KeyboardInterrupt:
