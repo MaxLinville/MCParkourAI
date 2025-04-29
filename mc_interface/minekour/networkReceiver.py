@@ -100,11 +100,16 @@ class networkReceiver:
     id = -1
     
     @staticmethod
-    def initCallbacks(set_val: callable, run_model: callable, stop_model: callable, get_score: callable, reset: callable, kill: callable, dead: callable):
+    def initCallbacks(miscFuncs: dict, set_val: callable, run_model: callable, stop_model: callable, get_score: callable, reset: callable, kill: callable, dead: callable):
         """
         Initializes callback dictionary with commands
         """
-        networkReceiver.command_map = dict()
+        
+        if miscFuncs is None:
+            miscFuncs = dict()
+        else:
+            networkReceiver.command_map = miscFuncs
+            
         networkReceiver.callback_set_values = set_val
         networkReceiver.callback_run_model = run_model
         networkReceiver.callback_stop_model = stop_model
@@ -149,7 +154,7 @@ class networkReceiver:
         except OSError as err:
             echo(f"FAILED TO CONNECT TO {address_control} OR {address_dead}")
             raise SystemExit(1)
-        
+    
     @staticmethod
     def run():
         """
@@ -188,7 +193,7 @@ class networkReceiver:
             echo(f"Recived {data} command")
             
             func = networkReceiver.command_map[data]
-            func()
+            func(sock)
             
         except KeyError as err:
             echo(f"Warning: recieved malformed command from server: {data}")
@@ -197,13 +202,12 @@ class networkReceiver:
             raise SystemExit(1)
         
     @staticmethod
-    def setValues():
+    def setValues(sock: socket):
         """
         Receives gene parameters from the network until STOP command is received
         Passes the received parameters to the callback_set_values function
         """
         gene_parameters = []
-        sock = networkReceiver.control_socket
         
         while True:
             # Receive parameter
@@ -238,7 +242,7 @@ class networkReceiver:
             echo("Warning: No parameters received or callback not set")
         
     @staticmethod
-    def getScore():
+    def getScore(sock: socket):
         """
         Gets the score from minecraft scoreboard of the specific player
         """
@@ -250,7 +254,7 @@ class networkReceiver:
             echo("Warning: Non OK recieved on getScore")
             
     @staticmethod
-    def startModel():
+    def startModel(sock: socket):
         """
         Starts the running of the model
         """

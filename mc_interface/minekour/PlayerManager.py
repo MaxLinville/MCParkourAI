@@ -17,7 +17,7 @@ class PlayerManager:
     """
 
     #constant for defining how far agent can see
-    DETECTION_RANGE = 5
+    DETECTION_RANGE = None
     block_map = None #none initially, need to set this later
     
     def __generate_cube_coords(p1, p2):

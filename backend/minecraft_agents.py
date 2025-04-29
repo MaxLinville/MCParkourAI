@@ -146,6 +146,46 @@ class networkCommander:
         
         return score
     
+    def setConsts(self, n: int, hidden: list[int], radial: int, time: int):
+        """
+        Sets the constants for the client
+        """
+        client = self.get_client(n)
+        client.send("SET_CONST".encode(self.ENCODING))
+        
+        #wait for OK
+        response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
+        if response != "OK":
+            print(f"WARNING:client {n} responded with non-ok on SET_CONST with response: {response}")
+            return
+        
+        for values in hidden:
+            client.send(str(values).encode(self.ENCODING))
+            
+            #wait for OK
+            response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
+            if response != "OK":
+                print(f"WARNING:client {n} responded with non-ok on SET_CONST with response: {response}")
+                return
+            
+        client.send("STOP".encode(self.ENCODING))
+        response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
+        if response != "OK":
+            print(f"WARNING:client {n} responded with non-ok on SET_CONST with response: {response}")
+            return
+        
+        client.send(str(radial).encode(self.ENCODING))
+        response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
+        if response != "OK":
+            print(f"WARNING:client {n} responded with non-ok on SET_CONST with response: {response}")
+            return
+        
+        client.send(str(time).encode(self.ENCODING))
+        response = client.recv(self.BUFFER_SIZE).decode(self.ENCODING)
+        if response != "OK":
+            print(f"WARNING:client {n} responded with non-ok on SET_CONST with response: {response}")
+            return
+    
     def set(self, n: int, gene_bytestring: bytes):
         """
         Sets new parameters for the client

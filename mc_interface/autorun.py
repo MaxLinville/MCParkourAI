@@ -3,16 +3,17 @@ Script that each minescript agent will autorun upon start
 """
 import numpy as np
 import time
+import socket
 
 from minekour.PlayerManager import PlayerManager, init
-from minekour.networkReceiver import networkReceiver
+from minekour.networkReceiver import networkReceiver, BUFFER_SIZE, ENCODING
 from minekour.neural_net import ControlNeuralNetwork
 from minekour.PlayerMotion import Motion, MoveType
 
 from minescript import execute, player_position, echo
 
 # callback definitions
-def reset():
+def reset(sock: socket):
     """
     resets the models position and score
     """
@@ -22,7 +23,7 @@ def reset():
     execute(f"/tp @p {x} {y} {z}")
     execute("/kill @p")
 
-def kill():
+def kill(sock: socket):
     """
     halts minescript function
     """
@@ -34,6 +35,14 @@ def modifyNet(recieved_genes):
     Modifies neural net and returns new neural net from genes recieved
     """
     global net
+    
+    if hidden_layer_sizes is None:
+        echo("hidden_layer_sizes was None, returning")
+        return
+    if radial_distance is None:
+        echo("radial_distance was None, returning")
+        return
+    
     net =  ControlNeuralNetwork.from_genes(
         genes=recieved_genes,
         hidden_layer_sizes=hidden_layer_sizes,
@@ -108,26 +117,73 @@ def stopNet():
     """
     pass
 
+def setConsts(sock: socket):
+    """
+    sets the constants for the neural network in the following order
+    
+    hidden_layer_sizes, radial_distance, timeout
+    """
+    global hidden_layer_sizes
+    global radial_distance
+    global input_dim
+    global scaling_factor
+    global timeout
+    global gene_size
+    
+    # set constants from socket data
+    value = sock.recv(BUFFER_SIZE).decode(ENCODING)
+    hidden = list()
+    
+    while value != "STOP":
+        sock.send("OK".encode(ENCODING))
+        hidden.append(int(value))
+        value = sock.recv(BUFFER_SIZE).decode(ENCODING)
+    
+    sock.send("OK".encode(ENCODING))
+    
+    radial = int(sock.recv(BUFFER_SIZE).decode(ENCODING))
+    sock.send("OK".encode(ENCODING))
+    time = int(sock.recv(BUFFER_SIZE).decode(ENCODING))
+    sock.send("OK".encode(ENCODING))
+    
+    hidden_layer_sizes = hidden
+    radial_distance = radial
+    timeout = time
+    
+    input_dim = (2*radial_distance+1)**3 + 1
+    scaling_factor = 1/np.sqrt(input_dim)
+    gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distance)
+    
 # parameters
-hidden_layer_sizes = [256, 128]
-radial_distance = 5
+hidden_layer_sizes = None
+radial_distance = None
 output_size = 7
-gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distance)
+gene_size = None
+#gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distance)
 # Generate random weights (genes)
-input_dim = (2*radial_distance+1)**3 + 1
-scaling_factor = 1/np.sqrt(input_dim)
-timeout = 30 #seconds before giving up
+
+input_dim = None
+scaling_factor = None
+timeout = None
+#input_dim = (2*radial_distance+1)**3 + 1
+#scaling_factor = 1/np.sqrt(input_dim)
+#timeout = 30 #seconds before giving up
 
 # run starts here
 init()
 
-random_genes = [np.random.normal(0, scaling_factor) for _ in range(gene_size)]
+#random_genes = [np.random.normal(0, scaling_factor) for _ in range(gene_size)]
 net = None
-modifyNet(random_genes)
+#modifyNet(random_genes)
 
 last_run_time = -1
 
-networkReceiver.initCallbacks(set_val=modifyNet, 
+funcs = dict()
+
+funcs["SET_CONST"] = setConsts
+
+networkReceiver.initCallbacks(otherFunctions = funcs,
+                              set_val=modifyNet, 
                               run_model=runNet, 
                               stop_model=stopNet, 
                               get_score=PlayerManager.getScore, 
