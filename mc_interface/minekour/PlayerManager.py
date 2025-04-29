@@ -49,6 +49,14 @@ class PlayerManager:
         point2 = ((x + distance), (y + distance), (z + distance))
         return point1, point2
 
+    def getSubBlockValue() -> list[float]:
+        x,y,z = player_position()
+        xf = math.floor(x)
+        yf = math.floor(y)
+        zf = math.floor(z)
+        
+        return [x-xf, y-yf, z-zf]
+
     def getBlocksAroundPlayer() -> list[SimplifiedBlock]:
         """
         Returns a list of blocks around the player in Simplified_Block format
