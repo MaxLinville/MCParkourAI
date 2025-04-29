@@ -267,6 +267,12 @@ class networkReceiver:
         """
         dead, time = networkReceiver.callback_is_dead()
         if dead:
-            networkReceiver.dead_socket.send(str(time).encode(ENCODING))
+            
+            if time is not None:
+                networkReceiver.dead_socket.send(str(time).encode(ENCODING))
+            else:
+                echo("Warning: Dead time is None")
+                networkReceiver.dead_socket.send(str(0).encode(ENCODING))    
+                
             networkReceiver.isRunning = False
             echo("PLAYER IS DEAD")
