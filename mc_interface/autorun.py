@@ -82,6 +82,10 @@ def runNet():
     global net
     global last_run_time
     
+    if net is None:
+        echo("net was None, returning")
+        return
+    
     if last_run_time == -1:
         echo("last_run_time was -1, setting to current time")
         last_run_time = time.time()
