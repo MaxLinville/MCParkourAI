@@ -19,15 +19,15 @@ from save_figure import save_figure
 from autofocus_windows import autofocus_minecraft
 import constants
 # Configuration
-STARTING_GENERATIONS = 112  # need to replace this with getting most recent gen from file
-NUM_AGENTS = 48
-NUM_GENERATIONS = 100
-SAVE_EVERY = 1  # Save genes every N generations
+STARTING_GENERATIONS = constants.starting_generations  # need to replace this with getting most recent gen from file
+NUM_AGENTS = constants.num_agents
+NUM_GENERATIONS = constants.num_generations
+SAVE_EVERY = constants.save_every  # Save genes every N generations
 HIDDEN_LAYER_SIZES = constants.hidden_layer_sizes
 RADIAL_DISTANCE = constants.radial_distance
-MUTATION_RATE = 0.01
-MUTATION_STRENGTH = 0.1
-BATCH_SIZE = 16  # Number of agents to evaluate in parallel
+MUTATION_RATE = constants.mutation_rate
+MUTATION_STRENGTH = constants.mutation_strength
+BATCH_SIZE = constants.batch_size  # Number of agents to evaluate in parallel
 TEST_NAME = "updated_map"
 METRICS_FILE = f"fitness_metrics/fitness_metrics_{TEST_NAME}.csv"  # New file for tracking fitness metrics
 GENES_FILE = f"backend/weights_{TEST_NAME}"

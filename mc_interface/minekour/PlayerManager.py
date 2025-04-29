@@ -17,7 +17,6 @@ class PlayerManager:
     """
 
     #constant for defining how far agent can see
-    DETECTION_RANGE = None
     block_map = None #none initially, need to set this later
     
     def __generate_cube_coords(p1, p2):
@@ -57,12 +56,12 @@ class PlayerManager:
         
         return [x-xf, y-yf, z-zf]
 
-    def getBlocksAroundPlayer() -> list[SimplifiedBlock]:
+    def getBlocksAroundPlayer(range: int) -> list[SimplifiedBlock]:
         """
         Returns a list of blocks around the player in Simplified_Block format
         """
         center_point = player_position()
-        point1, point2 = PlayerManager.__get_cube_bounds(center_point, PlayerManager.DETECTION_RANGE)
+        point1, point2 = PlayerManager.__get_cube_bounds(center_point, range)
         list_of_points = PlayerManager.__generate_cube_coords(point1, point2)
         blocks = getblocklist(list_of_points)
         
@@ -71,7 +70,7 @@ class PlayerManager:
         returned_blocks_enum = [PlayerManager.block_map[x] for x in returned_blocks_striped]
 
         # Ensure we return exactly (2*DETECTION_RANGE+1)^3 blocks
-        expected_size = (2*PlayerManager.DETECTION_RANGE+1)**3
+        expected_size = (2*range+1)**3
         current_size = len(returned_blocks_enum)
         
         if current_size < expected_size:

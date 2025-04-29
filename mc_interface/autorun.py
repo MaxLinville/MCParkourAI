@@ -86,13 +86,17 @@ def runNet():
         echo("net was None, returning")
         return
     
+    if radial_distance is None:
+        echo("radial_distance was None, returning")
+        return
+    
     if last_run_time == -1:
         echo("last_run_time was -1, setting to current time")
         last_run_time = time.time()
         echo(f"current time: {last_run_time}")
     
     # run network and move
-    inputs = PlayerManager.getBlocksAroundPlayer()
+    inputs = PlayerManager.getBlocksAroundPlayer(radial_distance)
     yaw, pitch = PlayerManager.getRotation()
 
     results = net.run_nn(block_inputs=inputs, 
