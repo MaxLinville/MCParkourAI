@@ -23,12 +23,11 @@ class ControlNeuralNetwork:
         self.weights = weights
         self.hidden_layer_sizes = hidden_layer_sizes
         self.radial_distance = radial_distance
-        self.input_size = (2 * radial_distance + 1) ** 3 + 1  # Block volume + yaw and pitch
+        self.input_size = (2 * radial_distance + 1) ** 3 + 3  # Block volume + fractional coordinates
     
     def run_nn(self, 
               block_inputs: List[float],
-              yaw: float, 
-              pitch: float = 0) -> List[Union[bool, int, float]]:
+              fractional_coordinates: tuple[float, float, float]) -> List[Union[bool, int, float]]:
         """
         Process inputs through the neural network
         
@@ -47,7 +46,7 @@ class ControlNeuralNetwork:
         block_inputs = [int(block) for block in block_inputs]
         
         # Combine inputs
-        inputs = np.array(block_inputs + [yaw])
+        inputs = np.array(block_inputs + [fractional_coordinates])
         
         # Process through hidden layers
         current_layer = inputs
@@ -67,14 +66,14 @@ class ControlNeuralNetwork:
         for i in range(5):
             results.append(bool(self._sigmoid(output_layer[i]) > 0.5))
         
-        # 1 three-state output (0, 1, or 2)
-        three_state_value = output_layer[5]
-        if three_state_value < -0.3:
-            results.append(0)
-        elif three_state_value < 0.3:
+        # 1 three-state output (1,2,3)
+        three_state_value = self._tanh(output_layer[5]/10000)
+        if three_state_value < -0.4:
             results.append(1)
-        else:
+        elif three_state_value < 0.4:
             results.append(2)
+        else:
+            results.append(3)
         
         # 2 continuous outputs (using tanh to get values in [-1, 1])
         for i in range(6, 7):
@@ -123,7 +122,7 @@ class ControlNeuralNetwork:
         Returns:
             MinecraftNeuralNetwork: Initialized neural network
         """
-        input_size = (2 * radial_distance + 1) ** 3 + 1  # Block volume + yaw and pitch
+        input_size = (2 * radial_distance + 1) ** 3 + 3  # Block volume + yaw and pitch
         weights = cls._create_weights_from_genes(genes, input_size, hidden_layer_sizes, output_size)
         return cls(weights, hidden_layer_sizes, radial_distance)
     
@@ -181,7 +180,7 @@ class ControlNeuralNetwork:
         Returns:
             Total number of genes needed
         """
-        input_size = (2 * radial_distance + 1) ** 3 + 1  # Block volume + yaw and pitch
+        input_size = (2 * radial_distance + 1) ** 3 + 3  # Block volume + yaw and pitch
         layer_sizes = [input_size] + hidden_layer_sizes + [output_size]
         gene_count = 0
         
