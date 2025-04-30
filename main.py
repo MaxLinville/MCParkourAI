@@ -17,18 +17,18 @@ from backend.agent import Agent
 from backend.minecraft_agents import networkCommander, start_agents
 from save_figure import save_figure
 from autofocus_windows import autofocus_minecraft
-import constants
+from constants import *
 # Configuration
-STARTING_GENERATIONS = 112  # need to replace this with getting most recent gen from file
+STARTING_GENERATIONS = 0  # need to replace this with getting most recent gen from file
 NUM_AGENTS = 48
 NUM_GENERATIONS = 100
 SAVE_EVERY = 1  # Save genes every N generations
-HIDDEN_LAYER_SIZES = constants.hidden_layer_sizes
-RADIAL_DISTANCE = constants.radial_distance
+HIDDEN_LAYER_SIZES = hidden_layer_sizes
+RADIAL_DISTANCE = radial_distance
 MUTATION_RATE = 0.01
 MUTATION_STRENGTH = 0.1
 BATCH_SIZE = 16  # Number of agents to evaluate in parallel
-TEST_NAME = "updated_map"
+TEST_NAME = "fractional_block"
 METRICS_FILE = f"fitness_metrics/fitness_metrics_{TEST_NAME}.csv"  # New file for tracking fitness metrics
 GENES_FILE = f"backend/weights_{TEST_NAME}"
 PYTHON_PATH = "/mnt/c/Users/Max Linville/AppData/Local/Programs/Python/Python313/python.exe"
@@ -225,6 +225,9 @@ def evaluate_agents_in_minecraft(agents: List[Agent], commander: networkCommande
             # Reset the environment for this client
             commander.reset(client_id)
             
+            # Set the constants for the neural network
+            commander.setConsts(client_id, HIDDEN_LAYER_SIZES, RADIAL_DISTANCE, timeout)
+
             # Send genes to client
             commander.set(client_id, gene_bytestring)  # Using updated set() method
             

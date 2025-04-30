@@ -6,6 +6,7 @@ from random import choice, choices
 from multiprocessing import Pool # this is for later when it becomes ungodly slow
 from .agent import Agent, gene_size
 from mc_interface.minekour.neural_net import ControlNeuralNetwork
+from constants import *
 
 def generate_population(num_agents: int = 100) -> list[Agent]:
     """
@@ -76,8 +77,8 @@ def evaluate_fitness(agents: list[Agent]) -> None:
         # Create neural network from agent's genes
         nn = ControlNeuralNetwork.from_genes(
             agent.get_genes(), 
-            hidden_layer_sizes=[256, 128], 
-            radial_distance=5
+            hidden_layer_sizes=hidden_layer_sizes, 
+            radial_distance=radial_distance
         )
         
         # Here you would evaluate the agent's performance in the environment

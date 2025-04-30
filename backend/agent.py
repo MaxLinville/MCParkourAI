@@ -4,11 +4,12 @@ Agent class to track genes and fitness of each agent as an object
 import numpy as np
 from mc_interface.minekour.neural_net import ControlNeuralNetwork
 from typing import List
+from constants import *
 
 # global variables
 # Global variables - use neural network to determine gene size
-radial_distance = 5
-hidden_layer_sizes = [256, 128]
+radial_distance = radial_distance
+hidden_layer_sizes = hidden_layer_sizes
 gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distance)
 
 class Agent:
