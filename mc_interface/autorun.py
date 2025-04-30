@@ -158,7 +158,7 @@ def setConsts(sock: socket):
     radial_distance = radial
     timeout = time
     
-    input_dim = (2*radial_distance+1)**3 + 1
+    input_dim = (2*radial_distance+1)**3 + 3
     scaling_factor = 1/np.sqrt(input_dim)
     gene_size = ControlNeuralNetwork.get_gene_size(hidden_layer_sizes, radial_distance)
     
@@ -190,7 +190,7 @@ funcs = dict()
 
 funcs["SET_CONST"] = setConsts
 
-networkReceiver.initCallbacks(otherFunctions = funcs,
+networkReceiver.initCallbacks(miscFuncs = funcs,
                               set_val=modifyNet, 
                               run_model=runNet, 
                               stop_model=stopNet, 
