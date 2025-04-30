@@ -186,7 +186,7 @@ funcs = dict()
 
 funcs["SET_CONST"] = setConsts
 
-networkReceiver.initCallbacks(otherFunctions = funcs,
+networkReceiver.initCallbacks(miscFuncs = funcs,
                               set_val=modifyNet, 
                               run_model=runNet, 
                               stop_model=stopNet, 
