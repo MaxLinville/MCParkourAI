@@ -62,6 +62,9 @@ def crossover(parent1: Agent, parent2: Agent) -> Agent:
     
     # Vectorized operation: use mask to select genes from either parent
     new_genes = np.where(mask, parent1.genes, parent2.genes)
+
+    # Ensure new genes are within [-1, 1]
+    new_genes = np.clip(new_genes, -1, 1)
     
     return Agent(new_genes)
 

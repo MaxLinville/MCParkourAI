@@ -33,14 +33,13 @@ class ControlNeuralNetwork:
         
         Args:
             block_inputs: List of values representing Minecraft blocks
-            yaw: Yaw angle input
-            pitch: Pitch angle input
+            fractional_coordinates: Tuple of x, y, z fractional coordinates
             
         Returns:
             List of 8 outputs:
             - 5 boolean values (True/False)
-            - 1 state value (0, 1, or 2)
-            - 2 continuous values (float in range [-1, 1])
+            - 1 state value (1, 2, or 3)
+            - 1 continuous value (float representing yaw)
         """
         # convert Simplified block inputs to int
         block_inputs = [int(block) for block in block_inputs]
@@ -54,38 +53,45 @@ class ControlNeuralNetwork:
         # Process through each hidden layer
         for i in range(len(self.hidden_layer_sizes)):
             # Apply weights and ReLU activation
-            current_layer = self._relu(np.dot(current_layer, self.weights[i]))
+            pre_activation = np.dot(current_layer, self.weights[i])
+            # Use ReLU but scale large values using tanh for values > 1
+            # This creates a "soft ceiling" while preserving ReLU properties for normal values
+            relu_values = self._relu(pre_activation)
+            large_values = relu_values > 1
+            relu_values[large_values] = 1 + np.tanh(relu_values[large_values] - 1)
+            current_layer = relu_values
         
-        # Final layer processing
-        output_layer = np.dot(current_layer, self.weights[-1])
+        # Final layer processing - use softer scaling to prevent extreme values
+        pre_final = np.dot(current_layer, self.weights[-1])
+        # Scale extreme values with tanh but preserve range near zero
+        output_layer = np.where(
+            np.abs(pre_final) > 2,
+            2 * np.tanh(pre_final/2),  # Soft scaling for large values
+            pre_final  # Keep original values for reasonable ranges
+        )
         
         # Process different output types
         results = []
         
-        # 5 binary outputs (using sigmoid and threshold)
+        # 5 binary outputs (using sigmoid with controlled input)
         for i in range(5):
             results.append(bool(self._sigmoid(output_layer[i]) > 0.5))
         
-        # 1 three-state output (1,2,3)
-        three_state_value = self._tanh(output_layer[5]/10000)
-        if three_state_value < -0.4:
+        # 1 three-state output (1,2,3) - use direct scaling to ensure full range utilization
+        three_state_value = output_layer[5] / 2  # Scale to roughly [-1, 1] range
+        if three_state_value < -0.33:
             results.append(1)
-        elif three_state_value < 0.4:
+        elif three_state_value < 0.33:
             results.append(2)
         else:
             results.append(3)
         
-        # 2 continuous outputs (using tanh to get values in [-1, 1])
-        for i in range(6, 7):
-            # Apply the periodic transformation: mod(-6arctan(x/10000),pi)-pi/2
-            x = output_layer[i]
-            arctanx = np.arctan(x / 10000)    # First apply arctan with scaling
-            scaled = -6 * arctanx             # Scale the arctan output
-            transformed = scaled % np.pi - np.pi/2  # Apply modulo and shift
-            # Scale to [-1, 1] range
-            compressed = transformed * (2/np.pi)
-            results.append(compressed)
-        # print(f"Yaw: {output_layer[6]}, Pitch: {output_layer[7]}, movement: {output_layer[5]}")
+        # Continuous yaw output - use smoother scaling to ensure full [-1, 1] range
+        yaw_value = output_layer[6]
+        normalized_yaw = np.tanh(yaw_value / 2) # Smoother scaling that preserves sensitivity near zero
+        results.append(normalized_yaw)
+
+        print(results)
         return results
     
     @staticmethod

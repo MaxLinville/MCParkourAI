@@ -1,4 +1,4 @@
-timeout = 30
+timeout = 20
 radial_distance = 5
 hidden_layer_sizes = [256, 128, 128]
 output_size = 7
@@ -11,5 +11,5 @@ HIDDEN_LAYER_SIZES = hidden_layer_sizes
 RADIAL_DISTANCE = radial_distance
 MUTATION_RATE = 0.01
 MUTATION_STRENGTH = 0.1
-BATCH_SIZE = 8  # Number of agents to evaluate in parallel
-TEST_NAME = "basic_map"
+BATCH_SIZE = 16  # Number of agents to evaluate in parallel
+TEST_NAME = "straight_map"

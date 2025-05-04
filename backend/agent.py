@@ -27,6 +27,8 @@ class Agent:
             # Convert to numpy array if it's not already
             self.genes = np.asarray(genes, dtype=np.float32)
 
+        self.genes = np.clip(self.genes, -1, 1)  # Ensure genes are within [-1, 1]
+
         self.fitness: float = 0.0
 
     def __str__(self) -> str:
@@ -96,6 +98,6 @@ class Agent:
         
         # Apply mutations only where the mask is True
         self.genes += mutation_values * mutation_mask
-        
+        self.genes = np.clip(self.genes, -1, 1)        
 
 
