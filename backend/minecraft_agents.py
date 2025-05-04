@@ -23,8 +23,6 @@ def start_agents(agents: list[int], location: str):
         print(f"starting_agent {i}")
         subprocess.run([location, "--launch", f"MinescriptClient{n}", "--profile", f"Minescript{n}"])
 
-# start_agents([_+1 for _ in range(32)], "/mnt/c/Users/Max Linville/AppData/Local/Programs/PrismLauncher/prismlauncher.exe")
-
 class networkCommander:
     """
     This class manages incoming connections and provides methods to send commands to clients

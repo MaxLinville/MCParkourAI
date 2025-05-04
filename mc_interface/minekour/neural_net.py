@@ -46,7 +46,7 @@ class ControlNeuralNetwork:
         block_inputs = [int(block) for block in block_inputs]
         
         # Combine inputs
-        inputs = np.array(block_inputs + [fractional_coordinates])
+        inputs = np.array(block_inputs + list(fractional_coordinates))
         
         # Process through hidden layers
         current_layer = inputs

@@ -1,130 +1,215 @@
-#!/usr/bin/env python3
-# filepath: /home/wslmax/classwork/ECE4524/MCParkourAI/minecraft_escape.py
+import os
+import pandas as pd
+import glob
+from datetime import timedelta
 
-import subprocess
-import time
-import json
-
-def get_minecraft_windows():
-    """Get a list of all Minecraft windows with their handles and titles"""
-    powershell_command = '''
-    powershell.exe -Command "
-    Add-Type @'
-    using System;
-    using System.Runtime.InteropServices;
-    using System.Collections.Generic;
-    using System.Text;
+def count_total_generations(metrics_folder="fitness_metrics"):
+    """
+    Count the total number of generations across all CSV files in the metrics folder.
     
-    public class WindowFinder {
-        [DllImport(\\"user32.dll\\")]
-        public static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
+    Args:
+        metrics_folder (str): Path to the folder containing CSV files
         
-        [DllImport(\\"user32.dll\\")]
-        public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+    Returns:
+        dict: Dictionary with 'total_generations' and breakdown by file
+    """
+    # Check if the folder exists
+    if not os.path.exists(metrics_folder):
+        print(f"Error: Folder '{metrics_folder}' not found")
+        return {"total_generations": 0, "files": {}}
+    
+    # Get all CSV files
+    csv_files = glob.glob(os.path.join(metrics_folder, "*.csv"))
+    
+    if not csv_files:
+        print(f"No CSV files found in {metrics_folder}")
+        return {"total_generations": 0, "files": {}}
+    
+    total_generations = 0
+    file_generations = {}
+    
+    print(f"Found {len(csv_files)} CSV files:")
+    
+    # Process each file
+    for csv_file in csv_files:
+        filename = os.path.basename(csv_file)
+        try:
+            # Skip parameter rows (usually the first 9 rows in your format)
+            df = pd.read_csv(csv_file, skiprows=9)
+            
+            # Count generations (rows) in this file
+            num_generations = len(df)
+            
+            # Check if we have actual data
+            if num_generations > 0:
+                file_generations[filename] = num_generations
+                total_generations += num_generations
+                print(f"  - {filename}: {num_generations} generations")
+            else:
+                print(f"  - {filename}: No generation data found")
+                
+        except Exception as e:
+            print(f"  - Error reading {filename}: {str(e)}")
+    
+    return {"total_generations": total_generations, "files": file_generations}
+
+def calculate_training_time(total_generations, agents_per_generation=48, time_per_agent=30):
+    """
+    Calculate the total training time based on generations, agents, and time per agent.
+    
+    Args:
+        total_generations (int): Total number of generations
+        agents_per_generation (int): Number of agents evaluated per generation
+        time_per_agent (float): Average time in seconds to evaluate one agent
         
-        [DllImport(\\"user32.dll\\")]
-        public static extern bool IsWindowVisible(IntPtr hWnd);
-        
-        public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-        
-        public static List<dynamic> FindMinecraftWindows() {
-            List<dynamic> results = new List<dynamic>();
-            EnumWindows(new EnumWindowsProc((hWnd, lParam) => {
-                StringBuilder sb = new StringBuilder(256);
-                if (IsWindowVisible(hWnd) && GetWindowText(hWnd, sb, sb.Capacity) > 0) {
-                    string title = sb.ToString();
-                    if (title.Contains(\\"Minecraft\\")) {
-                        results.Add(new { Handle = hWnd.ToInt64(), Title = title });
-                    }
-                }
-                return true;
-            }), IntPtr.Zero);
-            return results;
-        }
+    Returns:
+        dict: Dictionary with training time in different formats
+    """
+    # Calculate total seconds
+    total_seconds = total_generations * agents_per_generation * time_per_agent
+    
+    # Convert to timedelta for easier formatting
+    total_time = timedelta(seconds=total_seconds)
+    
+    # Format as days, hours, minutes, seconds
+    days = total_time.days
+    hours, remainder = divmod(total_time.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    
+    # Create formatted strings
+    time_str = f"{days} days, {hours:02d}:{minutes:02d}:{seconds:02d}"
+    hours_total = days * 24 + hours + minutes/60 + seconds/3600
+    
+    return {
+        "total_seconds": total_seconds,
+        "time_str": time_str,
+        "days": days,
+        "hours": hours,
+        "minutes": minutes,
+        "seconds": seconds,
+        "total_hours": hours_total
     }
-'@
-    
-    [WindowFinder]::FindMinecraftWindows() | ConvertTo-Json
-    "
-    '''
-    
-    try:
-        result = subprocess.run(powershell_command, capture_output=True, text=True, shell=True)
-        if result.returncode == 0 and result.stdout.strip():
-            return json.loads(result.stdout.strip())
-        return []
-    except Exception as e:
-        print(f"Error finding Minecraft windows: {e}")
-        return []
 
-def focus_window_and_press_escape(window_handle):
-    """Focus a specific window and press the Escape key"""
-    powershell_command = f'''
-    powershell.exe -Command "
-    Add-Type @'
-    using System;
-    using System.Runtime.InteropServices;
+def analyze_training_time_for_file(file_path, agents_per_generation=48, time_per_agent=30):
+    """
+    Calculate the training time for a single CSV file.
     
-    public class WindowController {{
-        [DllImport(\\"user32.dll\\")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool SetForegroundWindow(IntPtr hWnd);
+    Args:
+        file_path (str): Path to the CSV file
+        agents_per_generation (int): Number of agents evaluated per generation
+        time_per_agent (float): Average time in seconds to evaluate one agent
         
-        [DllImport(\\"user32.dll\\")]
-        public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
-        
-        public const byte VK_ESCAPE = 0x1B;
-        public const uint KEYEVENTF_KEYDOWN = 0x0000;
-        public const uint KEYEVENTF_KEYUP = 0x0002;
-        
-        public static void PressEscape(IntPtr hWnd) {{
-            SetForegroundWindow(hWnd);
-            System.Threading.Thread.Sleep(200);  // Wait for window to come to foreground
-            keybd_event(VK_ESCAPE, 0, KEYEVENTF_KEYDOWN, 0);
-            System.Threading.Thread.Sleep(50);
-            keybd_event(VK_ESCAPE, 0, KEYEVENTF_KEYUP, 0);
-        }}
-    }}
-'@
-    
-    [WindowController]::PressEscape([IntPtr]::new({window_handle}))
-    "
-    '''
-    
+    Returns:
+        dict: Dictionary with training information for this file
+    """
     try:
-        subprocess.run(powershell_command, shell=True, check=True)
-        return True
+        # Check if the file exists
+        if not os.path.exists(file_path):
+            return {"error": f"File not found: {file_path}"}
+        
+        # Extract parameters from CSV headers
+        with open(file_path, 'r') as f:
+            header_lines = [next(f) for _ in range(10)]
+        
+        parameters = {}
+        for line in header_lines:
+            if line.startswith('# '):
+                parts = line.strip().split(',')
+                if len(parts) >= 2:
+                    key = parts[0].replace('# ', '')
+                    value = parts[1]
+                    parameters[key] = value
+        
+        # Read generation data
+        df = pd.read_csv(file_path, skiprows=9)
+        num_generations = len(df)
+        
+        # Calculate training time
+        agents = int(parameters.get('Population Size', agents_per_generation))
+        time_info = calculate_training_time(num_generations, agents, time_per_agent)
+        
+        # Add file-specific information
+        latest_gen = df['Generation'].max() if not df.empty else 0
+        best_fitness = df['Best Fitness'].max() if not df.empty else 0
+        best_gen = df.loc[df['Best Fitness'].idxmax()]['Generation'] if not df.empty else 0
+        
+        return {
+            "parameters": parameters,
+            "generations": num_generations,
+            "latest_generation": latest_gen,
+            "best_fitness": best_fitness,
+            "best_fitness_generation": best_gen,
+            "training_time": time_info
+        }
+        
     except Exception as e:
-        print(f"Error interacting with window: {e}")
-        return False
+        return {"error": str(e)}
 
 def main():
-    print("Finding Minecraft windows...")
-    minecraft_windows = get_minecraft_windows()
+    # Get total generations across all files
+    results = count_total_generations()
+    total_gens = results["total_generations"]
     
-    if not minecraft_windows:
-        print("No Minecraft windows found.")
-        return
+    print(f"\nTotal generations across all files: {total_gens}")
     
-    print(f"Found {len(minecraft_windows)} Minecraft window(s).")
+    # Calculate the total training time with default parameters
+    training_time = calculate_training_time(total_gens)
     
-    for i, window in enumerate(minecraft_windows, 1):
-        title = window.get('Title', 'Unknown')
-        handle = window.get('Handle')
+    print(f"\nEstimated total training time:")
+    print(f"- {training_time['time_str']} (≈ {training_time['total_hours']:.2f} hours)")
+    print(f"- Total evaluations: {total_gens * 48} agent runs")
+    
+    # Example of analyzing a specific file
+    specific_file = "fitness_metrics/fitness_metrics_new_params_old_map.csv"
+    if os.path.exists(specific_file):
+        print(f"\nAnalyzing specific file: {os.path.basename(specific_file)}")
+        file_analysis = analyze_training_time_for_file(specific_file)
         
-        print(f"Processing window {i}/{len(minecraft_windows)}: {title}")
-        
-        if handle:
-            success = focus_window_and_press_escape(handle)
-            if success:
-                print(f"Successfully pressed Escape on window: {title}")
-            else:
-                print(f"Failed to interact with window: {title}")
-        
-        # Wait a moment before moving to the next window
-        time.sleep(1)
+        if "error" not in file_analysis:
+            time_info = file_analysis["training_time"]
+            print(f"- Generations: {file_analysis['generations']}")
+            print(f"- Latest generation: {file_analysis['latest_generation']}")
+            print(f"- Best fitness: {file_analysis['best_fitness']} (at generation {file_analysis['best_fitness_generation']})")
+            print(f"- Training time: {time_info['time_str']} (≈ {time_info['total_hours']:.2f} hours)")
+            print(f"- Parameters:")
+            for key, value in file_analysis["parameters"].items():
+                print(f"  • {key}: {value}")
+        else:
+            print(f"  Error: {file_analysis['error']}")
     
-    print("All Minecraft windows processed.")
+    # Prompt to analyze a different file
+    print("\nWould you like to analyze a specific CSV file? (y/n)")
+    choice = input().lower()
+    
+    if choice == 'y':
+        print("Enter the filename (in the fitness_metrics folder, e.g. fitness_metrics_new_params_old_map.csv):")
+        filename = input().strip()
+        if not filename.startswith("fitness_metrics/"):
+            filename = f"fitness_metrics/{filename}"
+        
+        print("\nEnter agents per generation (default: 48):")
+        try:
+            agents_input = input().strip()
+            agents = int(agents_input) if agents_input else 48
+        except:
+            agents = 48
+            
+        print("Enter average time per agent in seconds (default: 30):")
+        try:
+            time_input = input().strip()
+            time_per_agent = float(time_input) if time_input else 30
+        except:
+            time_per_agent = 30
+            
+        file_analysis = analyze_training_time_for_file(filename, agents, time_per_agent)
+        
+        if "error" not in file_analysis:
+            time_info = file_analysis["training_time"]
+            print(f"\nResults for {os.path.basename(filename)}:")
+            print(f"- Generations: {file_analysis['generations']}")
+            print(f"- Training time: {time_info['time_str']} (≈ {time_info['total_hours']:.2f} hours)")
+        else:
+            print(f"\nError: {file_analysis['error']}")
 
 if __name__ == "__main__":
     main()

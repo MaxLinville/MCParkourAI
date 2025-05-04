@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# filepath: /home/wslmax/classwork/ECE4524/MCParkourAI/minecraft_escape.py
 
 import subprocess
 import time

@@ -9,6 +9,7 @@ import subprocess
 from threading import Thread
 import glob
 import re
+from dotenv import load_dotenv, dotenv_values
 
 # Import our modules
 from mc_interface.minekour.neural_net import ControlNeuralNetwork
@@ -18,20 +19,11 @@ from backend.minecraft_agents import networkCommander, start_agents
 from save_figure import save_figure
 from autofocus_windows import autofocus_minecraft
 from constants import *
-# Configuration
-STARTING_GENERATIONS = 0  # need to replace this with getting most recent gen from file
-NUM_AGENTS = 48
-NUM_GENERATIONS = 100
-SAVE_EVERY = 1  # Save genes every N generations
-HIDDEN_LAYER_SIZES = hidden_layer_sizes
-RADIAL_DISTANCE = radial_distance
-MUTATION_RATE = 0.01
-MUTATION_STRENGTH = 0.1
-BATCH_SIZE = 16  # Number of agents to evaluate in parallel
-TEST_NAME = "fractional_block"
+
+load_dotenv()
 METRICS_FILE = f"fitness_metrics/fitness_metrics_{TEST_NAME}.csv"  # New file for tracking fitness metrics
 GENES_FILE = f"backend/weights_{TEST_NAME}"
-PYTHON_PATH = "/mnt/c/Users/Max Linville/AppData/Local/Programs/Python/Python313/python.exe"
+PYTHON_PATH = os.getenv("PYTHON_PATH")  # Path to Python executable
 
 def save_metrics_to_csv(generation: int, best_fitness: float, avg_fitness: float, file_path: str) -> None:
     """
@@ -101,8 +93,11 @@ def load_genes_from_file(file_path: str) -> Dict[str, List[float]]:
     if not gen_numbers:
         return {}
         
-    # Get the most recent file
-    most_recent_idx = gen_numbers.index(max(gen_numbers))
+     # Get the most recent file based on generation number
+    highest_gen = max(gen_numbers)
+    most_recent_idx = gen_numbers.index(highest_gen)
+    global STARTING_GENERATIONS
+    STARTING_GENERATIONS = highest_gen  # Next generation
     most_recent_file = weight_files[most_recent_idx]
     
     print(f"Loading weights from {most_recent_file}")
@@ -134,10 +129,24 @@ def save_genes_to_file(agents: List[Agent], file_path: str, generation: int = No
         genes_dict = {f"Agent{i}": np.array(agent.get_genes(), dtype=np.float32) for i, agent in enumerate(agents)}
         
         if generation is not None and generation % 10 == 0:
-            # Save with generation suffix for every 10th generation
-            save_path = folder_path / f"weights_{generation}.npz"
+            if generation % 10 == 0:
+                # Save with generation suffix for every 10th generation
+                save_path = folder_path / f"weights_{generation}.npz"
+            else:
+                # Clean up previous latest file if it exists (for non-milestone generations)
+                prev_latest_pattern = str(folder_path / f"weights_latest_*.npz")
+                prev_latest_files = glob.glob(prev_latest_pattern)
+                for old_file in prev_latest_files:
+                    try:
+                        os.remove(old_file)
+                        print(f"Removed previous latest file: {old_file}")
+                    except OSError as e:
+                        print(f"Error removing file {old_file}: {e}")
+                
+                # Save latest weights with current generation number
+                save_path = folder_path / f"weights_latest_{generation}.npz"
         else:
-            # Save latest weights
+            # Fallback if no generation provided
             save_path = folder_path / "weights_latest.npz"
             
         # Save as compressed npz file
@@ -285,7 +294,7 @@ def main() -> None:
     # Load existing genes if available
     genes_dict = load_genes_from_file(genes_path)
     # genes_dict = {}
-    
+    print(f"Starting generation: {STARTING_GENERATIONS}")
     # Create population
     population = create_population(genes_dict, NUM_AGENTS)
     
@@ -296,19 +305,16 @@ def main() -> None:
     print(f"Waiting for {BATCH_SIZE} Minecraft clients to connect...")
     client_wait_thread = Thread(target=commander.wait_for_clients, args=())
     client_wait_thread.start()
-    start_agents([_+1 for _ in range(BATCH_SIZE)], "/mnt/c/Users/Max Linville/AppData/Local/Programs/PrismLauncher/prismlauncher.exe")
+    start_agents([_+1 for _ in range(BATCH_SIZE)], os.getenv("PRISM_PATH"))
     client_wait_thread.join()
     print("All clients connected!")
     end_generation = STARTING_GENERATIONS + NUM_GENERATIONS
     # Generation loop
-    subprocess.run([PYTHON_PATH, "C:/Users/Max Linville/Desktop/tile_minecraft.py"]) # tiles minecraft windows
+    subprocess.run([PYTHON_PATH, "tile_minecraft.py"]) # tiles minecraft windows
     #autofocus windows
-    time.sleep(5)
     # open observation window
-    subprocess.run(["/mnt/c/Users/Max Linville/AppData/Local/Programs/PrismLauncher/prismlauncher.exe", "--launch", f"1.21.4(2)", "--profile", "MoopleMax"])
-    time.sleep(5)
+    subprocess.run([os.getenv("PRISM_PATH"), "--launch",  os.getenv("PRISM_OBSERVATION_DIRECTORY"), "--profile", os.getenv("PRISM_OBSERVATION_PROFILE")])
     autofocus_minecraft()
-
 
     try:
         for generation in range(STARTING_GENERATIONS,end_generation):
@@ -346,7 +352,7 @@ def main() -> None:
                     mutation_rate=mutation_rate, 
                     mutation_strength=mutation_strength
                 )
-            save_figure()
+            save_figure(file_name=TEST_NAME)  # Save the figure after each generation
         
         # Final save
         save_genes_to_file(population, genes_path, end_generation)
@@ -355,7 +361,8 @@ def main() -> None:
     except KeyboardInterrupt:
         print("Manual exit, closing minecraft clients...")
     finally:
-        subprocess.run(["powershell.exe", "-ExecutionPolicy", "Bypass", "-File", "C:\\Users\\Max Linville\\Desktop\\killminecraft.ps1"])    
+        # path to killminecraft.ps1, in current directory level
+        subprocess.run(["powershell.exe", "-ExecutionPolicy", "Bypass", "-File", "killminecraft.ps1"])    
 
 if __name__ == "__main__":
     main()

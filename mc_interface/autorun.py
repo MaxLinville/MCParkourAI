@@ -100,7 +100,7 @@ def runNet():
     yaw, pitch = PlayerManager.getRotation()
 
     results = net.run_nn(block_inputs=inputs, 
-                         yaw=yaw)
+                         fractional_coordinates=PlayerManager.getSubBlockValue())
     
     # convert to playerMotion object
     move = Motion()

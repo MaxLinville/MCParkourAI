@@ -4,7 +4,7 @@ import numpy as np
 import os
 from pathlib import Path
 
-def save_figure(file_name='updated_map'):
+def save_figure(file_name='fractional_block'):
     # Check if file_name already includes the directory path
     if not file_name.startswith('fitness_metrics/'):
         csv_path = f'fitness_metrics/fitness_metrics_{file_name}.csv'
@@ -55,7 +55,7 @@ def save_figure(file_name='updated_map'):
     
     plt.tight_layout()
     plt.savefig(output_path)
-    plt.show()
+    # plt.show()
 
     print(f"Plot created and saved as '{output_path}'")
 
