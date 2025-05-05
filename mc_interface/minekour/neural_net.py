@@ -50,19 +50,25 @@ class ControlNeuralNetwork:
         # Process through hidden layers
         current_layer = inputs
         
-        # Process through each hidden layer
+        # Process through each hidden layer with proper normalization
         for i in range(len(self.hidden_layer_sizes)):
-            # Apply weights and ReLU activation
-            pre_activation = np.dot(current_layer, self.weights[i])
-            # Use ReLU but scale large values using tanh for values > 1
-            # This creates a "soft ceiling" while preserving ReLU properties for normal values
-            relu_values = self._relu(pre_activation)
-            large_values = relu_values > 1
-            relu_values[large_values] = 1 + np.tanh(relu_values[large_values] - 1)
-            current_layer = relu_values
+            # Layer normalization - scale by input dimension (current_layer is the input to this calculation)
+            normalization_factor = 1.0 / np.sqrt(current_layer.shape[0])
+            pre_activation = np.dot(current_layer, self.weights[i]) * normalization_factor
+            
+            # SiLU/Swish activation - better properties than ReLU with smoother gradients
+            activation = pre_activation * self._sigmoid(pre_activation)
+            
+            # Apply soft ceiling only on extremely large values for safety
+            extreme_values = activation > 2
+            activation[extreme_values] = 2.0 + np.tanh(activation[extreme_values] - 2.0)
+            
+            current_layer = activation
         
         # Final layer processing - use softer scaling to prevent extreme values
-        pre_final = np.dot(current_layer, self.weights[-1])
+        # Final layer processing with proper normalization (same approach as hidden layers)
+        normalization_factor = 1.0 / np.sqrt(current_layer.shape[0])
+        pre_final = np.dot(current_layer, self.weights[-1]) * normalization_factor
         # Scale extreme values with tanh but preserve range near zero
         output_layer = np.where(
             np.abs(pre_final) > 2,
@@ -91,7 +97,8 @@ class ControlNeuralNetwork:
         normalized_yaw = np.tanh(yaw_value / 2) # Smoother scaling that preserves sensitivity near zero
         results.append(normalized_yaw)
 
-        print(results)
+        print("Prescaled output layer values:", output_layer)
+        print(f"Raw yaw: {yaw_value}, Normalized yaw: {normalized_yaw}")
         return results
     
     @staticmethod

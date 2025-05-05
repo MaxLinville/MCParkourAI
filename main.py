@@ -200,8 +200,8 @@ def get_adaptive_mutation_params(generation, max_generations):
     progress = generation / max_generations
     
     # Linearly decrease from initial to final values
-    rate = MUTATION_RATE * np.exp(-0.008*generation) # Decreases from 1% to 0.2% after 200 generations
-    strength = MUTATION_STRENGTH * np.exp(-0.008*generation) # Decreases from 0.1 to 0.02 after 200 generations
+    rate = MUTATION_RATE #* np.exp(-0.008*generation) # Decreases from 1% to 0.2% after 200 generations
+    strength = MUTATION_STRENGTH #* np.exp(-0.008*generation) # Decreases from 0.1 to 0.02 after 200 generations
     
     return rate, strength
 
